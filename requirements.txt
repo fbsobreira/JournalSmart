@@ -6,6 +6,7 @@ click==8.1.8
 cryptography==44.0.0
 enum-compat==0.0.3
 Flask==3.1.0
+Flask-SQLAlchemy==3.1.1
 idna==3.10
 intuit-oauth==1.2.6
 itsdangerous==2.2.0
@@ -23,6 +24,7 @@ requests-oauthlib==2.0.0
 setuptools==75.7.0
 simplejson==3.19.3
 six==1.17.0
+SQLAlchemy==2.0.36
 tailwindcss==0.0.1
 urllib3==2.3.0
 Werkzeug==3.1.3

@@ -5,127 +5,142 @@
 {% block content %}
 <div class="space-y-6">
     <!-- Page Header -->
-    <div>
-        <h1 class="text-2xl font-bold text-gray-900">Account Mapping Configuration</h1>
-        <p class="mt-1 text-sm text-gray-500">Configure patterns to automatically map journal entries to the correct accounts.</p>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Account Mapping Configuration</h1>
+            <p class="mt-1 text-sm text-gray-500">Configure patterns to automatically map journal entries to the correct accounts.</p>
+        </div>
+        <button
+            onclick="openCreateModal()"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+        >
+            <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Mapping
+        </button>
     </div>
 
     <!-- Current Mappings Card -->
     <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
         <div class="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">
             <h2 class="text-base font-semibold text-gray-900 flex items-center">
-                <svg class="mr-2 h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                <svg class="mr-2 h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
                 </svg>
                 Current Mappings
-                {% if mappings %}
-                <span class="ml-2 inline-flex items-center rounded-full bg-primary-100 px-2.5 py-0.5 text-xs font-medium text-primary-800">
+                <span id="mappingCount" class="ml-2 inline-flex items-center rounded-full bg-primary-100 px-2.5 py-0.5 text-xs font-medium text-primary-800">
                     {{ mappings | length }}
                 </span>
-                {% endif %}
             </h2>
         </div>
         <div class="p-4 sm:p-6">
-            {% if mappings %}
-            <div class="overflow-hidden">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead>
-                        <tr>
-                            <th scope="col" class="py-3 pl-4 pr-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 sm:pl-0">Pattern</th>
-                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">From Account</th>
-                            <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">To Account</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        {% for mapping in mappings %}
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="whitespace-nowrap py-4 pl-4 pr-3 sm:pl-0">
-                                <div class="flex items-center">
-                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1 text-sm font-mono text-gray-700">
+            <div id="mappingsContainer">
+                {% if mappings %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="py-3 pl-4 pr-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 sm:pl-0">Status</th>
+                                <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Pattern</th>
+                                <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">From Account</th>
+                                <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">To Account</th>
+                                <th scope="col" class="px-3 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mappingsTableBody" class="divide-y divide-gray-100">
+                            {% for mapping in mappings %}
+                            <tr id="mapping-row-{{ mapping.id }}" class="hover:bg-gray-50 transition-colors" data-mapping-id="{{ mapping.id }}">
+                                <td class="whitespace-nowrap py-4 pl-4 pr-3 sm:pl-0">
+                                    <button
+                                        onclick="toggleMapping({{ mapping.id }})"
+                                        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 {% if mapping.is_active %}bg-primary-600{% else %}bg-gray-200{% endif %}"
+                                        role="switch"
+                                        aria-checked="{{ 'true' if mapping.is_active else 'false' }}"
+                                        aria-label="Toggle mapping status"
+                                    >
+                                        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {% if mapping.is_active %}translate-x-5{% else %}translate-x-0{% endif %}"></span>
+                                    </button>
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-4">
+                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1 text-sm font-mono text-gray-700 {% if not mapping.is_active %}opacity-50{% endif %}">
                                         {{ mapping.pattern }}
                                     </span>
-                                </div>
-                            </td>
-                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                {% for account in accounts %}
-                                    {% if account.id == mapping.from_account_id %}
-                                    <span class="inline-flex items-center rounded-md bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">
-                                        {{ account.name }}
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    <span class="inline-flex items-center rounded-md bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 {% if not mapping.is_active %}opacity-50{% endif %}">
+                                        {{ mapping.from_account_name or mapping.from_account_id }}
                                     </span>
-                                    {% endif %}
-                                {% endfor %}
-                            </td>
-                            <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                <div class="flex items-center gap-2">
-                                    <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                                    </svg>
-                                    {% for account in accounts %}
-                                        {% if account.id == mapping.to_account_id %}
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                    <div class="flex items-center gap-2 {% if not mapping.is_active %}opacity-50{% endif %}">
+                                        <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                                        </svg>
                                         <span class="inline-flex items-center rounded-md bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
-                                            {{ account.name }}
+                                            {{ mapping.to_account_name or mapping.to_account_id }}
                                         </span>
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <!-- Empty State -->
-            <div class="text-center py-8">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-                </svg>
-                <h3 class="mt-4 text-sm font-semibold text-gray-900">No mappings configured</h3>
-                <p class="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-                    Add mappings to your <code class="px-1.5 py-0.5 bg-gray-100 rounded text-xs">.env</code> file using the format below to automatically remap journal entries.
-                </p>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Configuration Export Card -->
-    <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-        <div class="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">
-            <h2 class="text-base font-semibold text-gray-900 flex items-center">
-                <svg class="mr-2 h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-                </svg>
-                Configuration Export
-            </h2>
-        </div>
-        <div class="p-4 sm:p-6">
-            <p class="text-sm text-gray-600 mb-4">
-                Copy the configuration below and add it to your <code class="px-1.5 py-0.5 bg-gray-100 rounded text-xs font-mono">.env</code> file:
-            </p>
-            <div class="relative">
-                <div class="absolute top-3 right-3 z-10">
+                                    </div>
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-4 text-right text-sm">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <a
+                                            href="{{ url_for('journal.list_journals', account_id=mapping.from_account_id) }}"
+                                            class="text-gray-400 hover:text-green-600 transition-colors"
+                                            title="View journals for this account"
+                                        >
+                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.64 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.64 0-8.573-3.007-9.963-7.178z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                        </a>
+                                        <button
+                                            onclick="openEditModal(this)"
+                                            data-mapping='{{ mapping | tojson }}'
+                                            class="text-gray-400 hover:text-primary-600 transition-colors"
+                                            title="Edit mapping"
+                                        >
+                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            onclick="confirmDeleteMapping({{ mapping.id }}, '{{ mapping.pattern }}')"
+                                            class="text-gray-400 hover:text-red-600 transition-colors"
+                                            title="Delete mapping"
+                                        >
+                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <!-- Empty State -->
+                <div id="emptyState" class="text-center py-12">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                    </svg>
+                    <h3 class="mt-4 text-sm font-semibold text-gray-900">No mappings configured</h3>
+                    <p class="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
+                        Create your first mapping to automatically remap journal entries.
+                    </p>
                     <button
-                        id="copyBtn"
-                        onclick="copyToClipboard()"
-                        class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
-                        aria-label="Copy configuration to clipboard"
+                        onclick="openCreateModal()"
+                        class="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition-colors"
                     >
-                        <svg id="copyIcon" class="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                        <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
-                        <svg id="checkIcon" class="hidden mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                        </svg>
-                        <span id="copyText">Copy</span>
+                        Add Your First Mapping
                     </button>
                 </div>
-                <textarea
-                    id="mappingConfig"
-                    readonly
-                    class="w-full h-32 p-4 pr-24 text-sm font-mono bg-gray-900 text-gray-100 border-0 rounded-lg focus:ring-2 focus:ring-primary-500 resize-none custom-scrollbar"
-                    aria-label="Configuration for .env file"
-                >ACCOUNT_MAPPINGS={{ mappings | tojson }}</textarea>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -135,7 +150,7 @@
         <div class="p-4 sm:p-6">
             <div class="flex">
                 <div class="flex-shrink-0">
-                    <svg class="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <svg class="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                     </svg>
                 </div>
@@ -143,15 +158,11 @@
                     <h3 class="text-sm font-semibold text-primary-900">How Mappings Work</h3>
                     <div class="mt-2 text-sm text-primary-700">
                         <ul class="list-disc pl-5 space-y-1">
-                            <li><strong>Pattern:</strong> A text pattern to match in journal entry descriptions</li>
+                            <li><strong>Pattern:</strong> A text pattern to match in journal entry descriptions (case-insensitive)</li>
                             <li><strong>From Account:</strong> The account where matching entries are currently posted</li>
                             <li><strong>To Account:</strong> The account where entries should be moved to</li>
+                            <li><strong>Toggle:</strong> Enable or disable a mapping without deleting it</li>
                         </ul>
-                    </div>
-                    <div class="mt-3">
-                        <p class="text-sm text-primary-700">
-                            When you view journals for the "From Account", entries matching the pattern will show suggested changes to move them to the "To Account".
-                        </p>
                     </div>
                 </div>
             </div>
@@ -159,41 +170,425 @@
     </div>
 </div>
 
+<!-- Create/Edit Mapping Modal -->
+<div id="mappingModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-gray-500/75 transition-opacity" onclick="closeMappingModal()"></div>
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div class="relative transform rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                <form id="mappingForm" onsubmit="saveMapping(event)" class="overflow-visible">
+                    <input type="hidden" id="mappingId" name="id" value="">
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 overflow-visible">
+                        <div class="sm:flex sm:items-start overflow-visible">
+                            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-primary-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left flex-1 overflow-visible">
+                                <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">
+                                    Add New Mapping
+                                </h3>
+                                <div class="mt-4 space-y-4 overflow-visible">
+                                    <!-- Pattern Input -->
+                                    <div>
+                                        <label for="pattern" class="block text-sm font-medium text-gray-700">Pattern <span class="text-red-500">*</span></label>
+                                        <input
+                                            type="text"
+                                            id="pattern"
+                                            name="pattern"
+                                            required
+                                            placeholder="e.g., Office Supplies"
+                                            class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                                        >
+                                        <p class="mt-1 text-xs text-gray-500">Text to match in journal descriptions (case-insensitive)</p>
+                                    </div>
+
+                                    <!-- From Account -->
+                                    <div>
+                                        <label for="fromAccountSearch" class="block text-sm font-medium text-gray-700">From Account <span class="text-red-500">*</span></label>
+                                        <div class="relative mt-1">
+                                            <input
+                                                type="text"
+                                                id="fromAccountSearch"
+                                                placeholder="Type to search accounts..."
+                                                autocomplete="off"
+                                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                                            >
+                                            <input type="hidden" id="fromAccount" name="from_account_id" required>
+                                            <div id="fromAccountDropdown" class="hidden absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                                                {% for account in accounts %}
+                                                <div
+                                                    class="account-option px-3 py-2 cursor-pointer hover:bg-primary-50 text-sm"
+                                                    data-id="{{ account.id }}"
+                                                    data-name="{{ account.name }}"
+                                                    data-search="{{ account.name | lower }}"
+                                                >
+                                                    {% if account.is_sub_account %}<span class="text-gray-300 mr-1">└</span>{% endif %}
+                                                    {{ account.name }}
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- To Account -->
+                                    <div>
+                                        <label for="toAccountSearch" class="block text-sm font-medium text-gray-700">To Account <span class="text-red-500">*</span></label>
+                                        <div class="relative mt-1">
+                                            <input
+                                                type="text"
+                                                id="toAccountSearch"
+                                                placeholder="Type to search accounts..."
+                                                autocomplete="off"
+                                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                                            >
+                                            <input type="hidden" id="toAccount" name="to_account_id" required>
+                                            <div id="toAccountDropdown" class="hidden absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                                                {% for account in accounts %}
+                                                <div
+                                                    class="account-option px-3 py-2 cursor-pointer hover:bg-primary-50 text-sm"
+                                                    data-id="{{ account.id }}"
+                                                    data-name="{{ account.name }}"
+                                                    data-search="{{ account.name | lower }}"
+                                                >
+                                                    {% if account.is_sub_account %}<span class="text-gray-300 mr-1">└</span>{% endif %}
+                                                    {{ account.name }}
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
+                        <button
+                            type="submit"
+                            id="saveBtn"
+                            class="inline-flex w-full justify-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 sm:w-auto transition-colors"
+                        >
+                            Save Mapping
+                        </button>
+                        <button
+                            type="button"
+                            onclick="closeMappingModal()"
+                            class="mt-3 inline-flex w-full justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition-colors"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-async function copyToClipboard() {
-    const textarea = document.getElementById('mappingConfig');
-    const btn = document.getElementById('copyBtn');
-    const copyIcon = document.getElementById('copyIcon');
-    const checkIcon = document.getElementById('checkIcon');
-    const copyText = document.getElementById('copyText');
+// Store accounts data for JavaScript
+const accountsData = {{ accounts | tojson }};
+
+// Searchable dropdown functionality
+function initSearchableDropdown(searchId, hiddenId, dropdownId) {
+    const searchInput = document.getElementById(searchId);
+    const hiddenInput = document.getElementById(hiddenId);
+    const dropdown = document.getElementById(dropdownId);
+    const options = dropdown.querySelectorAll('.account-option');
+
+    // Show dropdown on focus
+    searchInput.addEventListener('focus', () => {
+        dropdown.classList.remove('hidden');
+        filterOptions('');
+    });
+
+    // Filter on input
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        filterOptions(query);
+        // Clear hidden value when typing
+        hiddenInput.value = '';
+    });
+
+    // Filter options
+    function filterOptions(query) {
+        let hasVisible = false;
+        options.forEach(opt => {
+            const searchText = opt.dataset.search;
+            if (searchText.includes(query)) {
+                opt.classList.remove('hidden');
+                hasVisible = true;
+            } else {
+                opt.classList.add('hidden');
+            }
+        });
+    }
+
+    // Select option on click
+    options.forEach(opt => {
+        opt.addEventListener('click', () => {
+            selectOption(opt);
+        });
+    });
+
+    function selectOption(opt) {
+        searchInput.value = opt.dataset.name;
+        hiddenInput.value = opt.dataset.id;
+        dropdown.classList.add('hidden');
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    // Keyboard navigation
+    searchInput.addEventListener('keydown', (e) => {
+        const visibleOptions = [...options].filter(opt => !opt.classList.contains('hidden'));
+        const currentIndex = visibleOptions.findIndex(opt => opt.classList.contains('bg-primary-100'));
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const nextIndex = currentIndex < visibleOptions.length - 1 ? currentIndex + 1 : 0;
+            highlightOption(visibleOptions, nextIndex);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const prevIndex = currentIndex > 0 ? currentIndex - 1 : visibleOptions.length - 1;
+            highlightOption(visibleOptions, prevIndex);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            const highlighted = visibleOptions.find(opt => opt.classList.contains('bg-primary-100'));
+            if (highlighted) {
+                selectOption(highlighted);
+            }
+        } else if (e.key === 'Escape') {
+            dropdown.classList.add('hidden');
+        }
+    });
+
+    function highlightOption(visibleOptions, index) {
+        options.forEach(opt => opt.classList.remove('bg-primary-100'));
+        if (visibleOptions[index]) {
+            visibleOptions[index].classList.add('bg-primary-100');
+            visibleOptions[index].scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    // Return helper to set value programmatically
+    return {
+        setValue: (id, name) => {
+            hiddenInput.value = id || '';
+            searchInput.value = name || '';
+        },
+        clear: () => {
+            hiddenInput.value = '';
+            searchInput.value = '';
+        }
+    };
+}
+
+// Initialize dropdowns
+let fromAccountDropdown, toAccountDropdown;
+document.addEventListener('DOMContentLoaded', () => {
+    fromAccountDropdown = initSearchableDropdown('fromAccountSearch', 'fromAccount', 'fromAccountDropdown');
+    toAccountDropdown = initSearchableDropdown('toAccountSearch', 'toAccount', 'toAccountDropdown');
+});
+
+function openCreateModal() {
+    document.getElementById('modal-title').textContent = 'Add New Mapping';
+    document.getElementById('saveBtn').textContent = 'Save Mapping';
+    document.getElementById('mappingForm').reset();
+    document.getElementById('mappingId').value = '';
+    if (fromAccountDropdown) fromAccountDropdown.clear();
+    if (toAccountDropdown) toAccountDropdown.clear();
+    document.getElementById('mappingModal').classList.remove('hidden');
+}
+
+function openEditModal(button) {
+    const mapping = JSON.parse(button.dataset.mapping);
+    document.getElementById('modal-title').textContent = 'Edit Mapping';
+    document.getElementById('saveBtn').textContent = 'Update Mapping';
+    document.getElementById('mappingId').value = mapping.id;
+    document.getElementById('pattern').value = mapping.pattern;
+    if (fromAccountDropdown) fromAccountDropdown.setValue(mapping.from_account_id, mapping.from_account_name);
+    if (toAccountDropdown) toAccountDropdown.setValue(mapping.to_account_id, mapping.to_account_name);
+    document.getElementById('mappingModal').classList.remove('hidden');
+}
+
+function closeMappingModal() {
+    document.getElementById('mappingModal').classList.add('hidden');
+}
+
+async function saveMapping(event) {
+    event.preventDefault();
+
+    const mappingId = document.getElementById('mappingId').value;
+    const pattern = document.getElementById('pattern').value.trim();
+
+    const fromAccountId = document.getElementById('fromAccount').value;
+    const toAccountId = document.getElementById('toAccount').value;
+    const fromAccountName = document.getElementById('fromAccountSearch').value;
+    const toAccountName = document.getElementById('toAccountSearch').value;
+
+    if (!pattern || !fromAccountId || !toAccountId) {
+        window.showToast('Please fill in all required fields', 'error');
+        return;
+    }
+
+    if (fromAccountId === toAccountId) {
+        window.showToast('From and To accounts must be different', 'error');
+        return;
+    }
+
+    const data = {
+        pattern: pattern,
+        from_account_id: fromAccountId,
+        from_account_name: fromAccountName,
+        to_account_id: toAccountId,
+        to_account_name: toAccountName
+    };
+
+    const saveBtn = document.getElementById('saveBtn');
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = 'Saving...';
+    saveBtn.disabled = true;
 
     try {
-        await navigator.clipboard.writeText(textarea.value);
+        let url = '/api/mappings';
+        let method = 'POST';
 
-        // Show success state
-        copyIcon.classList.add('hidden');
-        checkIcon.classList.remove('hidden');
-        copyText.textContent = 'Copied!';
-        btn.classList.remove('bg-primary-600', 'hover:bg-primary-700');
-        btn.classList.add('bg-green-600', 'hover:bg-green-700');
+        if (mappingId) {
+            url = `/api/mappings/${mappingId}`;
+            method = 'PUT';
+        }
 
-        window.showToast('Configuration copied to clipboard', 'success');
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
 
-        // Reset after 2 seconds
-        setTimeout(() => {
-            copyIcon.classList.remove('hidden');
-            checkIcon.classList.add('hidden');
-            copyText.textContent = 'Copy';
-            btn.classList.remove('bg-green-600', 'hover:bg-green-700');
-            btn.classList.add('bg-primary-600', 'hover:bg-primary-700');
-        }, 2000);
-    } catch (err) {
-        // Fallback for older browsers
-        textarea.select();
-        document.execCommand('copy');
+        const result = await response.json();
 
-        window.showToast('Configuration copied to clipboard', 'success');
+        if (response.ok) {
+            window.showToast(mappingId ? 'Mapping updated successfully' : 'Mapping created successfully', 'success');
+            closeMappingModal();
+            // Reload page to show updated mappings
+            window.location.reload();
+        } else {
+            window.showToast(result.error || 'Failed to save mapping', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving mapping:', error);
+        window.showToast('An error occurred while saving the mapping', 'error');
+    } finally {
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
     }
 }
+
+async function toggleMapping(mappingId) {
+    try {
+        const response = await fetch(`/api/mappings/${mappingId}/toggle`, {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            const isActive = result.mapping.is_active;
+            window.showToast(`Mapping ${isActive ? 'enabled' : 'disabled'}`, 'success');
+
+            // Update UI without full page reload
+            const row = document.getElementById(`mapping-row-${mappingId}`);
+            const toggle = row.querySelector('button[role="switch"]');
+            const toggleDot = toggle.querySelector('span');
+            const elements = row.querySelectorAll('span:not([class*="translate"])');
+
+            if (isActive) {
+                toggle.classList.remove('bg-gray-200');
+                toggle.classList.add('bg-primary-600');
+                toggleDot.classList.remove('translate-x-0');
+                toggleDot.classList.add('translate-x-5');
+                toggle.setAttribute('aria-checked', 'true');
+                elements.forEach(el => el.classList.remove('opacity-50'));
+            } else {
+                toggle.classList.remove('bg-primary-600');
+                toggle.classList.add('bg-gray-200');
+                toggleDot.classList.remove('translate-x-5');
+                toggleDot.classList.add('translate-x-0');
+                toggle.setAttribute('aria-checked', 'false');
+                elements.forEach(el => {
+                    if (!el.closest('button')) {
+                        el.classList.add('opacity-50');
+                    }
+                });
+            }
+        } else {
+            window.showToast(result.error || 'Failed to toggle mapping', 'error');
+        }
+    } catch (error) {
+        console.error('Error toggling mapping:', error);
+        window.showToast('An error occurred while toggling the mapping', 'error');
+    }
+}
+
+async function confirmDeleteMapping(mappingId, pattern) {
+    const confirmed = await window.showConfirm(
+        'Delete Mapping',
+        `Are you sure you want to delete the mapping for pattern "${pattern}"? This action cannot be undone.`
+    );
+
+    if (confirmed) {
+        await deleteMapping(mappingId);
+    }
+}
+
+async function deleteMapping(mappingId) {
+    try {
+        const response = await fetch(`/api/mappings/${mappingId}`, {
+            method: 'DELETE'
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            window.showToast('Mapping deleted successfully', 'success');
+
+            // Remove row from table
+            const row = document.getElementById(`mapping-row-${mappingId}`);
+            if (row) {
+                row.remove();
+            }
+
+            // Update count
+            const countEl = document.getElementById('mappingCount');
+            const currentCount = parseInt(countEl.textContent);
+            countEl.textContent = currentCount - 1;
+
+            // Show empty state if no mappings left
+            const tbody = document.getElementById('mappingsTableBody');
+            if (tbody && tbody.children.length === 0) {
+                window.location.reload();
+            }
+        } else {
+            window.showToast(result.error || 'Failed to delete mapping', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting mapping:', error);
+        window.showToast('An error occurred while deleting the mapping', 'error');
+    }
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeMappingModal();
+    }
+});
 </script>
 {% endblock %}
