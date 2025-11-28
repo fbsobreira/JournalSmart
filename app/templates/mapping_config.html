@@ -7,12 +7,12 @@
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Account Mapping Configuration</h1>
-            <p class="mt-1 text-sm text-gray-500">Configure patterns to automatically map journal entries to the correct accounts.</p>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Account Mapping Configuration</h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Configure patterns to automatically map journal entries to the correct accounts.</p>
         </div>
         <button
             onclick="openCreateModal()"
-            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors"
         >
             <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -22,14 +22,14 @@
     </div>
 
     <!-- Current Mappings Card -->
-    <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-        <div class="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">
-            <h2 class="text-base font-semibold text-gray-900 flex items-center">
-                <svg class="mr-2 h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+    <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+            <h2 class="text-base font-semibold text-gray-900 dark:text-white flex items-center">
+                <svg class="mr-2 h-5 w-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
                 </svg>
                 Current Mappings
-                <span id="mappingCount" class="ml-2 inline-flex items-center rounded-full bg-primary-100 px-2.5 py-0.5 text-xs font-medium text-primary-800">
+                <span id="mappingCount" class="ml-2 inline-flex items-center rounded-full bg-primary-100 dark:bg-primary-900/50 px-2.5 py-0.5 text-xs font-medium text-primary-800 dark:text-primary-300">
                     {{ mappings | length }}
                 </span>
             </h2>
@@ -38,23 +38,23 @@
             <div id="mappingsContainer">
                 {% if mappings %}
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead>
                             <tr>
-                                <th scope="col" class="py-3 pl-4 pr-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 sm:pl-0">Status</th>
-                                <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Pattern</th>
-                                <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">From Account</th>
-                                <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">To Account</th>
-                                <th scope="col" class="px-3 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500">Actions</th>
+                                <th scope="col" class="py-3 pl-4 pr-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:pl-0">Status</th>
+                                <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Pattern</th>
+                                <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">From Account</th>
+                                <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">To Account</th>
+                                <th scope="col" class="px-3 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="mappingsTableBody" class="divide-y divide-gray-100">
+                        <tbody id="mappingsTableBody" class="divide-y divide-gray-100 dark:divide-gray-700">
                             {% for mapping in mappings %}
-                            <tr id="mapping-row-{{ mapping.id }}" class="hover:bg-gray-50 transition-colors" data-mapping-id="{{ mapping.id }}">
+                            <tr id="mapping-row-{{ mapping.id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-mapping-id="{{ mapping.id }}">
                                 <td class="whitespace-nowrap py-4 pl-4 pr-3 sm:pl-0">
                                     <button
                                         onclick="toggleMapping({{ mapping.id }})"
-                                        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 {% if mapping.is_active %}bg-primary-600{% else %}bg-gray-200{% endif %}"
+                                        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 {% if mapping.is_active %}bg-primary-600{% else %}bg-gray-200 dark:bg-gray-600{% endif %}"
                                         role="switch"
                                         aria-checked="{{ 'true' if mapping.is_active else 'false' }}"
                                         aria-label="Toggle mapping status"
@@ -63,21 +63,21 @@
                                     </button>
                                 </td>
                                 <td class="whitespace-nowrap px-3 py-4">
-                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1 text-sm font-mono text-gray-700 {% if not mapping.is_active %}opacity-50{% endif %}">
+                                    <span class="inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-700 px-2.5 py-1 text-sm font-mono text-gray-700 dark:text-gray-300 {% if not mapping.is_active %}opacity-50{% endif %}">
                                         {{ mapping.pattern }}
                                     </span>
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                                    <span class="inline-flex items-center rounded-md bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 {% if not mapping.is_active %}opacity-50{% endif %}">
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                    <span class="inline-flex items-center rounded-md bg-red-50 dark:bg-red-900/30 px-2.5 py-1 text-xs font-medium text-red-700 dark:text-red-400 {% if not mapping.is_active %}opacity-50{% endif %}">
                                         {{ mapping.from_account_name or mapping.from_account_id }}
                                     </span>
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
                                     <div class="flex items-center gap-2 {% if not mapping.is_active %}opacity-50{% endif %}">
                                         <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                                         </svg>
-                                        <span class="inline-flex items-center rounded-md bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+                                        <span class="inline-flex items-center rounded-md bg-green-50 dark:bg-green-900/30 px-2.5 py-1 text-xs font-medium text-green-700 dark:text-green-400">
                                             {{ mapping.to_account_name or mapping.to_account_id }}
                                         </span>
                                     </div>
@@ -86,7 +86,7 @@
                                     <div class="flex items-center justify-end gap-2">
                                         <a
                                             href="{{ url_for('journal.list_journals', account_id=mapping.from_account_id) }}"
-                                            class="text-gray-400 hover:text-green-600 transition-colors"
+                                            class="text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
                                             title="View journals for this account"
                                         >
                                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -97,7 +97,7 @@
                                         <button
                                             onclick="openEditModal(this)"
                                             data-mapping='{{ mapping | tojson }}'
-                                            class="text-gray-400 hover:text-primary-600 transition-colors"
+                                            class="text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                                             title="Edit mapping"
                                         >
                                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -106,7 +106,7 @@
                                         </button>
                                         <button
                                             onclick="confirmDeleteMapping({{ mapping.id }}, '{{ mapping.pattern }}')"
-                                            class="text-gray-400 hover:text-red-600 transition-colors"
+                                            class="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                                             title="Delete mapping"
                                         >
                                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -123,11 +123,11 @@
                 {% else %}
                 <!-- Empty State -->
                 <div id="emptyState" class="text-center py-12">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                    <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
                     </svg>
-                    <h3 class="mt-4 text-sm font-semibold text-gray-900">No mappings configured</h3>
-                    <p class="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
+                    <h3 class="mt-4 text-sm font-semibold text-gray-900 dark:text-white">No mappings configured</h3>
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
                         Create your first mapping to automatically remap journal entries.
                     </p>
                     <button
@@ -146,17 +146,17 @@
     </div>
 
     <!-- Help Card -->
-    <div class="bg-primary-50 border border-primary-200 rounded-xl overflow-hidden">
+    <div class="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl overflow-hidden">
         <div class="p-4 sm:p-6">
             <div class="flex">
                 <div class="flex-shrink-0">
-                    <svg class="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <svg class="h-6 w-6 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                     </svg>
                 </div>
                 <div class="ml-4">
-                    <h3 class="text-sm font-semibold text-primary-900">How Mappings Work</h3>
-                    <div class="mt-2 text-sm text-primary-700">
+                    <h3 class="text-sm font-semibold text-primary-900 dark:text-primary-300">How Mappings Work</h3>
+                    <div class="mt-2 text-sm text-primary-700 dark:text-primary-400">
                         <ul class="list-disc pl-5 space-y-1">
                             <li><strong>Pattern:</strong> A text pattern to match in journal entry descriptions (case-insensitive)</li>
                             <li><strong>From Account:</strong> The account where matching entries are currently posted</li>
@@ -175,12 +175,12 @@
     <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeMappingModal()"></div>
     <div class="fixed inset-0 z-10 overflow-y-auto">
         <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <div class="relative transform rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md">
+            <div class="relative transform rounded-2xl bg-white dark:bg-gray-800 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md">
                 <form id="mappingForm" onsubmit="saveMapping(event)" class="overflow-visible">
                     <input type="hidden" id="mappingId" name="id" value="">
 
                     <!-- Modal Header -->
-                    <div class="px-6 pt-6 pb-4 border-b border-gray-100">
+                    <div class="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
                         <div class="flex items-center gap-3">
                             <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg shadow-primary-500/30">
                                 <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -188,8 +188,8 @@
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-lg font-semibold text-gray-900" id="modal-title">Add New Mapping</h3>
-                                <p class="text-sm text-gray-500">Define account reassignment rules</p>
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="modal-title">Add New Mapping</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Define account reassignment rules</p>
                             </div>
                         </div>
                     </div>
@@ -198,7 +198,7 @@
                     <div class="px-6 py-5 space-y-5 overflow-visible">
                         <!-- Pattern Input -->
                         <div>
-                            <label for="pattern" class="block text-sm font-medium text-gray-700 mb-1.5">
+                            <label for="pattern" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                 Pattern <span class="text-red-500">*</span>
                             </label>
                             <div class="flex gap-2">
@@ -214,14 +214,14 @@
                                         name="pattern"
                                         required
                                         placeholder="e.g., Office Supplies"
-                                        class="block w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow"
+                                        class="block w-full pl-9 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow"
                                     >
                                 </div>
                                 <button
                                     type="button"
                                     onclick="testPattern()"
                                     id="testPatternBtn"
-                                    class="inline-flex items-center px-3.5 py-2.5 text-sm font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-200 rounded-lg transition-all hover:shadow-sm whitespace-nowrap"
+                                    class="inline-flex items-center px-3.5 py-2.5 text-sm font-medium text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/50 hover:bg-primary-100 dark:hover:bg-primary-900/70 border border-primary-200 dark:border-primary-700 rounded-lg transition-all hover:shadow-sm whitespace-nowrap"
                                     title="Test pattern against recent journals"
                                 >
                                     <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -230,35 +230,35 @@
                                     Test
                                 </button>
                             </div>
-                            <p class="mt-1.5 text-xs text-gray-500">Text to match in journal descriptions (case-insensitive)</p>
+                            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">Text to match in journal descriptions (case-insensitive)</p>
                         </div>
 
                         <!-- Pattern Test Results -->
                         <div id="patternTestResults" class="hidden">
-                            <div class="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                                <div class="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
-                                    <span class="text-sm font-medium text-gray-700">
+                            <div class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-700/50">
+                                <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between">
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
                                         <span id="testResultsTitle">Test Results</span>
                                     </span>
                                     <button
                                         type="button"
                                         onclick="hideTestResults()"
-                                        class="text-gray-400 hover:text-gray-600 p-0.5 rounded hover:bg-gray-200 transition-colors"
+                                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                                     >
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
                                 </div>
-                                <div id="testResultsContent" class="max-h-48 overflow-y-auto bg-white">
+                                <div id="testResultsContent" class="max-h-48 overflow-y-auto bg-white dark:bg-gray-800">
                                     <!-- Results will be inserted here -->
                                 </div>
                             </div>
                         </div>
 
                         <!-- Account Mapping Section -->
-                        <div class="bg-gray-50 rounded-xl p-4 space-y-4">
-                            <div class="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 space-y-4">
+                            <div class="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
                                 </svg>
@@ -267,13 +267,13 @@
 
                             <!-- From Account -->
                             <div>
-                                <label for="fromAccountSearch" class="block text-sm font-medium text-gray-700 mb-1.5">
+                                <label for="fromAccountSearch" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                     From Account <span class="text-red-500">*</span>
                                 </label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span class="inline-flex items-center justify-center h-5 w-5 rounded bg-red-100">
-                                            <svg class="h-3 w-3 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <span class="inline-flex items-center justify-center h-5 w-5 rounded bg-red-100 dark:bg-red-900/50">
+                                            <svg class="h-3 w-3 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
                                             </svg>
                                         </span>
@@ -283,18 +283,18 @@
                                         id="fromAccountSearch"
                                         placeholder="Search accounts..."
                                         autocomplete="off"
-                                        class="block w-full pl-11 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow"
+                                        class="block w-full pl-11 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow"
                                     >
                                     <input type="hidden" id="fromAccount" name="from_account_id" required>
-                                    <div id="fromAccountDropdown" class="hidden absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-auto">
+                                    <div id="fromAccountDropdown" class="hidden absolute z-50 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl max-h-60 overflow-auto">
                                         {% for account in accounts %}
                                         <div
-                                            class="account-option px-3 py-2.5 cursor-pointer hover:bg-primary-50 text-sm border-b border-gray-50 last:border-0"
+                                            class="account-option px-3 py-2.5 cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/50 text-sm text-gray-900 dark:text-gray-100 border-b border-gray-50 dark:border-gray-600 last:border-0"
                                             data-id="{{ account.id }}"
                                             data-name="{{ account.name }}"
                                             data-search="{{ account.name | lower }}"
                                         >
-                                            {% if account.is_sub_account %}<span class="text-gray-300 mr-1">└</span>{% endif %}
+                                            {% if account.is_sub_account %}<span class="text-gray-300 dark:text-gray-500 mr-1">└</span>{% endif %}
                                             {{ account.name }}
                                         </div>
                                         {% endfor %}
@@ -304,7 +304,7 @@
 
                             <!-- Arrow -->
                             <div class="flex justify-center">
-                                <div class="flex items-center justify-center h-8 w-8 rounded-full bg-white border-2 border-gray-200 shadow-sm">
+                                <div class="flex items-center justify-center h-8 w-8 rounded-full bg-white dark:bg-gray-600 border-2 border-gray-200 dark:border-gray-500 shadow-sm">
                                     <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
                                     </svg>
@@ -313,13 +313,13 @@
 
                             <!-- To Account -->
                             <div>
-                                <label for="toAccountSearch" class="block text-sm font-medium text-gray-700 mb-1.5">
+                                <label for="toAccountSearch" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                     To Account <span class="text-red-500">*</span>
                                 </label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <span class="inline-flex items-center justify-center h-5 w-5 rounded bg-green-100">
-                                            <svg class="h-3 w-3 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <span class="inline-flex items-center justify-center h-5 w-5 rounded bg-green-100 dark:bg-green-900/50">
+                                            <svg class="h-3 w-3 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 4.5l15 15m0 0V8.25m0 11.25H8.25" />
                                             </svg>
                                         </span>
@@ -329,18 +329,18 @@
                                         id="toAccountSearch"
                                         placeholder="Search accounts..."
                                         autocomplete="off"
-                                        class="block w-full pl-11 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow"
+                                        class="block w-full pl-11 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow"
                                     >
                                     <input type="hidden" id="toAccount" name="to_account_id" required>
-                                    <div id="toAccountDropdown" class="hidden absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-auto">
+                                    <div id="toAccountDropdown" class="hidden absolute z-50 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl max-h-60 overflow-auto">
                                         {% for account in accounts %}
                                         <div
-                                            class="account-option px-3 py-2.5 cursor-pointer hover:bg-primary-50 text-sm border-b border-gray-50 last:border-0"
+                                            class="account-option px-3 py-2.5 cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900/50 text-sm text-gray-900 dark:text-gray-100 border-b border-gray-50 dark:border-gray-600 last:border-0"
                                             data-id="{{ account.id }}"
                                             data-name="{{ account.name }}"
                                             data-search="{{ account.name | lower }}"
                                         >
-                                            {% if account.is_sub_account %}<span class="text-gray-300 mr-1">└</span>{% endif %}
+                                            {% if account.is_sub_account %}<span class="text-gray-300 dark:text-gray-500 mr-1">└</span>{% endif %}
                                             {{ account.name }}
                                         </div>
                                         {% endfor %}
@@ -350,18 +350,18 @@
                         </div>
                     </div>
                     <!-- Modal Footer -->
-                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 rounded-b-2xl flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                    <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 rounded-b-2xl flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
                         <button
                             type="button"
                             onclick="closeMappingModal()"
-                            class="w-full sm:w-auto px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all"
+                            class="w-full sm:w-auto px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 dark:focus:ring-offset-gray-800 transition-all"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             id="saveBtn"
-                            class="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg shadow-sm hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all"
+                            class="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg shadow-sm hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800 transition-all"
                         >
                             Save Mapping
                         </button>
@@ -600,7 +600,7 @@ async function toggleMapping(mappingId) {
             const elements = row.querySelectorAll('span:not([class*="translate"])');
 
             if (isActive) {
-                toggle.classList.remove('bg-gray-200');
+                toggle.classList.remove('bg-gray-200', 'dark:bg-gray-600');
                 toggle.classList.add('bg-primary-600');
                 toggleDot.classList.remove('translate-x-0');
                 toggleDot.classList.add('translate-x-5');
@@ -608,7 +608,7 @@ async function toggleMapping(mappingId) {
                 elements.forEach(el => el.classList.remove('opacity-50'));
             } else {
                 toggle.classList.remove('bg-primary-600');
-                toggle.classList.add('bg-gray-200');
+                toggle.classList.add('bg-gray-200', 'dark:bg-gray-600');
                 toggleDot.classList.remove('translate-x-5');
                 toggleDot.classList.add('translate-x-0');
                 toggle.setAttribute('aria-checked', 'false');
@@ -763,8 +763,8 @@ function displayTestResults(result, pattern) {
 
     if (result.matches.length === 0) {
         resultsContent.innerHTML = `
-            <div class="px-3 py-4 text-center text-sm text-gray-500">
-                <svg class="mx-auto h-8 w-8 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <div class="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                <svg class="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600 mb-2" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
                 No matches found in the last 90 days.<br>
@@ -781,17 +781,17 @@ function displayTestResults(result, pattern) {
             );
 
             return `
-                <div class="px-3 py-2 border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                <div class="px-3 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <div class="flex items-center justify-between gap-2">
-                        <span class="text-xs text-gray-400 font-mono">#${match.journal_id}</span>
-                        <span class="text-xs text-gray-400">${match.journal_date || ''}</span>
+                        <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">#${match.journal_id}</span>
+                        <span class="text-xs text-gray-400 dark:text-gray-500">${match.journal_date || ''}</span>
                     </div>
-                    <p class="text-sm text-gray-700 mt-1">${highlighted}</p>
+                    <p class="text-sm text-gray-700 dark:text-gray-300 mt-1">${highlighted}</p>
                     <div class="flex items-center justify-between mt-1">
-                        <span class="text-xs px-1.5 py-0.5 rounded ${match.posting_type === 'Debit' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}">
+                        <span class="text-xs px-1.5 py-0.5 rounded ${match.posting_type === 'Debit' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400'}">
                             ${match.posting_type}
                         </span>
-                        <span class="text-xs text-gray-500">$${formatAmount(match.amount)}</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">$${formatAmount(match.amount)}</span>
                     </div>
                 </div>
             `;
@@ -809,7 +809,7 @@ function highlightMatch(text, start, end) {
     const match = escapeHtml(text.substring(start, end));
     const after = escapeHtml(text.substring(end));
 
-    return `${before}<mark class="bg-yellow-200 text-yellow-900 px-0.5 rounded">${match}</mark>${after}`;
+    return `${before}<mark class="bg-yellow-200 dark:bg-yellow-500/30 text-yellow-900 dark:text-yellow-200 px-0.5 rounded">${match}</mark>${after}`;
 }
 
 function escapeHtml(text) {
