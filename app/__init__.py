@@ -88,11 +88,12 @@ def create_app(config_class=Config):
     init_qbo(app)
 
     # Register blueprints
-    from app.routes import journal, mapping, auth, api
+    from app.routes import journal, mapping, auth, api, history
     app.register_blueprint(journal.bp)
     app.register_blueprint(mapping.bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(api.bp)
+    app.register_blueprint(history.bp)
 
     # Register error handlers
     register_error_handlers(app)
