@@ -214,6 +214,76 @@ def toggle_mapping(mapping_id):
 
 
 # =============================================================================
+# Pattern Testing Endpoints
+# =============================================================================
+
+@bp.route('/mappings/test', methods=['POST'])
+@require_qbo_auth
+def test_pattern():
+    """Test a pattern against recent journal entries"""
+    from app.services.qbo import qbo_service
+    from datetime import datetime, timedelta
+    import re
+
+    try:
+        data = request.json
+
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        pattern = data.get('pattern', '').strip()
+        from_account_id = data.get('from_account_id', '').strip()
+
+        if not pattern:
+            return jsonify({'error': 'Pattern is required'}), 400
+
+        if not from_account_id:
+            return jsonify({'error': 'From account is required'}), 400
+
+        # Get journals from the last 90 days for testing
+        start_date = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
+
+        # Fetch journals for the specified account
+        journals = qbo_service.get_journals_for_pattern_test(from_account_id, start_date)
+
+        # Test pattern against journal descriptions
+        matches = []
+        pattern_lower = pattern.lower()
+
+        for journal in journals:
+            for line in journal.get('lines', []):
+                description = line.get('description', '')
+                if description and pattern_lower in description.lower():
+                    # Find match position for highlighting
+                    match_start = description.lower().find(pattern_lower)
+                    match_end = match_start + len(pattern)
+
+                    matches.append({
+                        'journal_id': journal.get('id'),
+                        'journal_date': journal.get('date'),
+                        'description': description,
+                        'match_start': match_start,
+                        'match_end': match_end,
+                        'amount': line.get('amount'),
+                        'posting_type': line.get('posting_type')
+                    })
+
+        logger.debug(f"Pattern '{pattern}' matched {len(matches)} lines")
+
+        return jsonify({
+            'success': True,
+            'pattern': pattern,
+            'matches': matches[:50],  # Limit to 50 results
+            'total_matches': len(matches),
+            'truncated': len(matches) > 50
+        })
+
+    except Exception as e:
+        logger.error(f"Error testing pattern: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+# =============================================================================
 # Import/Export Endpoints
 # =============================================================================
 

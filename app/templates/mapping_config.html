@@ -172,111 +172,198 @@
 
 <!-- Create/Edit Mapping Modal -->
 <div id="mappingModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="fixed inset-0 bg-gray-500/75 transition-opacity" onclick="closeMappingModal()"></div>
+    <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeMappingModal()"></div>
     <div class="fixed inset-0 z-10 overflow-y-auto">
         <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <div class="relative transform rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+            <div class="relative transform rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md">
                 <form id="mappingForm" onsubmit="saveMapping(event)" class="overflow-visible">
                     <input type="hidden" id="mappingId" name="id" value="">
-                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 overflow-visible">
-                        <div class="sm:flex sm:items-start overflow-visible">
-                            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-primary-100 sm:mx-0 sm:h-10 sm:w-10">
-                                <svg class="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+
+                    <!-- Modal Header -->
+                    <div class="px-6 pt-6 pb-4 border-b border-gray-100">
+                        <div class="flex items-center gap-3">
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg shadow-primary-500/30">
+                                <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
                                 </svg>
                             </div>
-                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left flex-1 overflow-visible">
-                                <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">
-                                    Add New Mapping
-                                </h3>
-                                <div class="mt-4 space-y-4 overflow-visible">
-                                    <!-- Pattern Input -->
-                                    <div>
-                                        <label for="pattern" class="block text-sm font-medium text-gray-700">Pattern <span class="text-red-500">*</span></label>
-                                        <input
-                                            type="text"
-                                            id="pattern"
-                                            name="pattern"
-                                            required
-                                            placeholder="e.g., Office Supplies"
-                                            class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900" id="modal-title">Add New Mapping</h3>
+                                <p class="text-sm text-gray-500">Define account reassignment rules</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal Body -->
+                    <div class="px-6 py-5 space-y-5 overflow-visible">
+                        <!-- Pattern Input -->
+                        <div>
+                            <label for="pattern" class="block text-sm font-medium text-gray-700 mb-1.5">
+                                Pattern <span class="text-red-500">*</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <div class="relative flex-1">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                        </svg>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="pattern"
+                                        name="pattern"
+                                        required
+                                        placeholder="e.g., Office Supplies"
+                                        class="block w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow"
+                                    >
+                                </div>
+                                <button
+                                    type="button"
+                                    onclick="testPattern()"
+                                    id="testPatternBtn"
+                                    class="inline-flex items-center px-3.5 py-2.5 text-sm font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-200 rounded-lg transition-all hover:shadow-sm whitespace-nowrap"
+                                    title="Test pattern against recent journals"
+                                >
+                                    <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                    </svg>
+                                    Test
+                                </button>
+                            </div>
+                            <p class="mt-1.5 text-xs text-gray-500">Text to match in journal descriptions (case-insensitive)</p>
+                        </div>
+
+                        <!-- Pattern Test Results -->
+                        <div id="patternTestResults" class="hidden">
+                            <div class="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                                <div class="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
+                                    <span class="text-sm font-medium text-gray-700">
+                                        <span id="testResultsTitle">Test Results</span>
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onclick="hideTestResults()"
+                                        class="text-gray-400 hover:text-gray-600 p-0.5 rounded hover:bg-gray-200 transition-colors"
+                                    >
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div id="testResultsContent" class="max-h-48 overflow-y-auto bg-white">
+                                    <!-- Results will be inserted here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Account Mapping Section -->
+                        <div class="bg-gray-50 rounded-xl p-4 space-y-4">
+                            <div class="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                                </svg>
+                                Account Reassignment
+                            </div>
+
+                            <!-- From Account -->
+                            <div>
+                                <label for="fromAccountSearch" class="block text-sm font-medium text-gray-700 mb-1.5">
+                                    From Account <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="inline-flex items-center justify-center h-5 w-5 rounded bg-red-100">
+                                            <svg class="h-3 w-3 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="fromAccountSearch"
+                                        placeholder="Search accounts..."
+                                        autocomplete="off"
+                                        class="block w-full pl-11 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow"
+                                    >
+                                    <input type="hidden" id="fromAccount" name="from_account_id" required>
+                                    <div id="fromAccountDropdown" class="hidden absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-auto">
+                                        {% for account in accounts %}
+                                        <div
+                                            class="account-option px-3 py-2.5 cursor-pointer hover:bg-primary-50 text-sm border-b border-gray-50 last:border-0"
+                                            data-id="{{ account.id }}"
+                                            data-name="{{ account.name }}"
+                                            data-search="{{ account.name | lower }}"
                                         >
-                                        <p class="mt-1 text-xs text-gray-500">Text to match in journal descriptions (case-insensitive)</p>
-                                    </div>
-
-                                    <!-- From Account -->
-                                    <div>
-                                        <label for="fromAccountSearch" class="block text-sm font-medium text-gray-700">From Account <span class="text-red-500">*</span></label>
-                                        <div class="relative mt-1">
-                                            <input
-                                                type="text"
-                                                id="fromAccountSearch"
-                                                placeholder="Type to search accounts..."
-                                                autocomplete="off"
-                                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                                            >
-                                            <input type="hidden" id="fromAccount" name="from_account_id" required>
-                                            <div id="fromAccountDropdown" class="hidden absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-                                                {% for account in accounts %}
-                                                <div
-                                                    class="account-option px-3 py-2 cursor-pointer hover:bg-primary-50 text-sm"
-                                                    data-id="{{ account.id }}"
-                                                    data-name="{{ account.name }}"
-                                                    data-search="{{ account.name | lower }}"
-                                                >
-                                                    {% if account.is_sub_account %}<span class="text-gray-300 mr-1">└</span>{% endif %}
-                                                    {{ account.name }}
-                                                </div>
-                                                {% endfor %}
-                                            </div>
+                                            {% if account.is_sub_account %}<span class="text-gray-300 mr-1">└</span>{% endif %}
+                                            {{ account.name }}
                                         </div>
+                                        {% endfor %}
                                     </div>
+                                </div>
+                            </div>
 
-                                    <!-- To Account -->
-                                    <div>
-                                        <label for="toAccountSearch" class="block text-sm font-medium text-gray-700">To Account <span class="text-red-500">*</span></label>
-                                        <div class="relative mt-1">
-                                            <input
-                                                type="text"
-                                                id="toAccountSearch"
-                                                placeholder="Type to search accounts..."
-                                                autocomplete="off"
-                                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                                            >
-                                            <input type="hidden" id="toAccount" name="to_account_id" required>
-                                            <div id="toAccountDropdown" class="hidden absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-                                                {% for account in accounts %}
-                                                <div
-                                                    class="account-option px-3 py-2 cursor-pointer hover:bg-primary-50 text-sm"
-                                                    data-id="{{ account.id }}"
-                                                    data-name="{{ account.name }}"
-                                                    data-search="{{ account.name | lower }}"
-                                                >
-                                                    {% if account.is_sub_account %}<span class="text-gray-300 mr-1">└</span>{% endif %}
-                                                    {{ account.name }}
-                                                </div>
-                                                {% endfor %}
-                                            </div>
+                            <!-- Arrow -->
+                            <div class="flex justify-center">
+                                <div class="flex items-center justify-center h-8 w-8 rounded-full bg-white border-2 border-gray-200 shadow-sm">
+                                    <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <!-- To Account -->
+                            <div>
+                                <label for="toAccountSearch" class="block text-sm font-medium text-gray-700 mb-1.5">
+                                    To Account <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="inline-flex items-center justify-center h-5 w-5 rounded bg-green-100">
+                                            <svg class="h-3 w-3 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 4.5l15 15m0 0V8.25m0 11.25H8.25" />
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="toAccountSearch"
+                                        placeholder="Search accounts..."
+                                        autocomplete="off"
+                                        class="block w-full pl-11 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow"
+                                    >
+                                    <input type="hidden" id="toAccount" name="to_account_id" required>
+                                    <div id="toAccountDropdown" class="hidden absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-auto">
+                                        {% for account in accounts %}
+                                        <div
+                                            class="account-option px-3 py-2.5 cursor-pointer hover:bg-primary-50 text-sm border-b border-gray-50 last:border-0"
+                                            data-id="{{ account.id }}"
+                                            data-name="{{ account.name }}"
+                                            data-search="{{ account.name | lower }}"
+                                        >
+                                            {% if account.is_sub_account %}<span class="text-gray-300 mr-1">└</span>{% endif %}
+                                            {{ account.name }}
                                         </div>
+                                        {% endfor %}
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-2">
-                        <button
-                            type="submit"
-                            id="saveBtn"
-                            class="inline-flex w-full justify-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 sm:w-auto transition-colors"
-                        >
-                            Save Mapping
-                        </button>
+                    <!-- Modal Footer -->
+                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 rounded-b-2xl flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
                         <button
                             type="button"
                             onclick="closeMappingModal()"
-                            class="mt-3 inline-flex w-full justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition-colors"
+                            class="w-full sm:w-auto px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all"
                         >
                             Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            id="saveBtn"
+                            class="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg shadow-sm hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all"
+                        >
+                            Save Mapping
                         </button>
                     </div>
                 </form>
@@ -403,6 +490,7 @@ function openCreateModal() {
     document.getElementById('mappingId').value = '';
     if (fromAccountDropdown) fromAccountDropdown.clear();
     if (toAccountDropdown) toAccountDropdown.clear();
+    hideTestResults();
     document.getElementById('mappingModal').classList.remove('hidden');
 }
 
@@ -414,11 +502,13 @@ function openEditModal(button) {
     document.getElementById('pattern').value = mapping.pattern;
     if (fromAccountDropdown) fromAccountDropdown.setValue(mapping.from_account_id, mapping.from_account_name);
     if (toAccountDropdown) toAccountDropdown.setValue(mapping.to_account_id, mapping.to_account_name);
+    hideTestResults();
     document.getElementById('mappingModal').classList.remove('hidden');
 }
 
 function closeMappingModal() {
     document.getElementById('mappingModal').classList.add('hidden');
+    hideTestResults();
 }
 
 async function saveMapping(event) {
@@ -590,5 +680,154 @@ document.addEventListener('keydown', function(event) {
         closeMappingModal();
     }
 });
+
+// =============================================================================
+// Pattern Testing
+// =============================================================================
+
+async function testPattern() {
+    const pattern = document.getElementById('pattern').value.trim();
+    const fromAccountId = document.getElementById('fromAccount').value;
+
+    if (!pattern) {
+        window.showToast('Please enter a pattern to test', 'error');
+        return;
+    }
+
+    if (!fromAccountId) {
+        window.showToast('Please select a "From Account" first', 'error');
+        return;
+    }
+
+    const testBtn = document.getElementById('testPatternBtn');
+    const resultsContainer = document.getElementById('patternTestResults');
+    const resultsContent = document.getElementById('testResultsContent');
+    const resultsTitle = document.getElementById('testResultsTitle');
+
+    // Show loading state
+    testBtn.disabled = true;
+    testBtn.innerHTML = `
+        <svg class="animate-spin h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Testing...
+    `;
+
+    try {
+        const response = await fetch('/api/mappings/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                pattern: pattern,
+                from_account_id: fromAccountId
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            displayTestResults(result, pattern);
+        } else {
+            window.showToast(result.error || 'Failed to test pattern', 'error');
+            hideTestResults();
+        }
+    } catch (error) {
+        console.error('Error testing pattern:', error);
+        window.showToast('An error occurred while testing the pattern', 'error');
+        hideTestResults();
+    } finally {
+        // Reset button
+        testBtn.disabled = false;
+        testBtn.innerHTML = `
+            <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+            Test
+        `;
+    }
+}
+
+function displayTestResults(result, pattern) {
+    const resultsContainer = document.getElementById('patternTestResults');
+    const resultsContent = document.getElementById('testResultsContent');
+    const resultsTitle = document.getElementById('testResultsTitle');
+
+    // Update title with count
+    const countText = result.truncated
+        ? `${result.matches.length}+ matches (showing first 50)`
+        : `${result.total_matches} match${result.total_matches !== 1 ? 'es' : ''}`;
+    resultsTitle.textContent = countText;
+
+    if (result.matches.length === 0) {
+        resultsContent.innerHTML = `
+            <div class="px-3 py-4 text-center text-sm text-gray-500">
+                <svg class="mx-auto h-8 w-8 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                No matches found in the last 90 days.<br>
+                <span class="text-xs">Try a different pattern or check the "From Account".</span>
+            </div>
+        `;
+    } else {
+        resultsContent.innerHTML = result.matches.map(match => {
+            // Highlight the matched text
+            const highlighted = highlightMatch(
+                match.description,
+                match.match_start,
+                match.match_end
+            );
+
+            return `
+                <div class="px-3 py-2 border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs text-gray-400 font-mono">#${match.journal_id}</span>
+                        <span class="text-xs text-gray-400">${match.journal_date || ''}</span>
+                    </div>
+                    <p class="text-sm text-gray-700 mt-1">${highlighted}</p>
+                    <div class="flex items-center justify-between mt-1">
+                        <span class="text-xs px-1.5 py-0.5 rounded ${match.posting_type === 'Debit' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}">
+                            ${match.posting_type}
+                        </span>
+                        <span class="text-xs text-gray-500">$${formatAmount(match.amount)}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Show results
+    resultsContainer.classList.remove('hidden');
+}
+
+function highlightMatch(text, start, end) {
+    if (start < 0 || end > text.length) return escapeHtml(text);
+
+    const before = escapeHtml(text.substring(0, start));
+    const match = escapeHtml(text.substring(start, end));
+    const after = escapeHtml(text.substring(end));
+
+    return `${before}<mark class="bg-yellow-200 text-yellow-900 px-0.5 rounded">${match}</mark>${after}`;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatAmount(amount) {
+    if (amount == null) return '0.00';
+    return parseFloat(amount).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function hideTestResults() {
+    document.getElementById('patternTestResults').classList.add('hidden');
+}
 </script>
 {% endblock %}

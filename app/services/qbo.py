@@ -313,6 +313,54 @@ class QBOService:
             logger.debug(traceback.format_exc())
             return None
 
+    def get_journals_for_pattern_test(self, account_id: str, start_date: str) -> List[Dict[str, Any]]:
+        """
+        Fetch journal entries for pattern testing.
+        Returns all lines for the specified account without mapping filtering.
+        """
+        safe_account_id = self._sanitize_id(account_id)
+        if not safe_account_id:
+            logger.error(f"Invalid account_id for pattern test: {account_id}")
+            return []
+
+        if not self.qb:
+            self.authenticate()
+
+        try:
+            # Query journals by date
+            query = f"select * from JournalEntry where TxnDate >= '{start_date}' MAXRESULTS 500"
+            journals = JournalEntry.query(query, qb=self.qb)
+
+            logger.debug(f"Pattern test: Found {len(journals)} journals since {start_date}")
+
+            # Filter and format journals that have lines with the selected account
+            result = []
+            for journal in journals:
+                journal_lines = []
+                for line in journal.Line:
+                    if (hasattr(line, 'JournalEntryLineDetail') and
+                        hasattr(line.JournalEntryLineDetail, 'AccountRef') and
+                        line.JournalEntryLineDetail.AccountRef.value == safe_account_id):
+                        journal_lines.append({
+                            'description': line.Description or '',
+                            'amount': float(line.Amount) if hasattr(line, 'Amount') else 0.0,
+                            'posting_type': line.JournalEntryLineDetail.PostingType
+                        })
+
+                if journal_lines:
+                    result.append({
+                        'id': journal.Id,
+                        'date': getattr(journal, 'TxnDate', ''),
+                        'lines': journal_lines
+                    })
+
+            logger.debug(f"Pattern test: {len(result)} journals have lines with account {safe_account_id}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error fetching journals for pattern test: {str(e)}")
+            return []
+
     def update_journals_accounts(self, journal_ids: List[str]) -> List[Dict[str, Any]]:
         """Update journal accounts based on mappings"""
         from app.extensions import db
