@@ -1,159 +1,285 @@
 {% extends "base.html" %}
 
+{% block title %}Journals - JournalSmart for QBO{% endblock %}
+
 {% block content %}
-<div class="bg-white shadow overflow-hidden sm:rounded-lg">
-    <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-        <h2 class="text-lg leading-6 font-medium text-gray-900">Journal Updates</h2>
-        <button id="updateAll" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-            Update Selected Entries
-        </button>
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Journal Updates</h1>
+            <p class="mt-1 text-sm text-gray-500">Review and apply account mapping changes to your journal entries.</p>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <button id="updateAll"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Update selected journal entries">
+                <svg id="updateIcon" class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <svg id="updateSpinner" class="hidden animate-spin mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span id="updateText">Update Selected</span>
+            </button>
+        </div>
     </div>
 
-    <!-- Account Selection -->
-    <div class="px-4 py-3 border-t border-gray-200">
-        <form method="get" action="{{ url_for('journal.list_journals') }}" id="filterForm">
-            <div class="grid grid-cols-2 gap-4">
-                <!-- Account Selection -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Select Account to Update</label>
-                    <div class="mt-1">
-                        <select 
-                            name="account_id" 
-                            class="block w-full rounded-md border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
-                            onchange="this.form.submit()"
+    <!-- Filters Card -->
+    <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">
+            <h2 class="text-base font-semibold text-gray-900 flex items-center">
+                <svg class="mr-2 h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+                </svg>
+                Filters
+            </h2>
+        </div>
+        <div class="px-4 py-5 sm:p-6">
+            <form method="get" action="{{ url_for('journal.list_journals') }}" id="filterForm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Account Selection -->
+                    <div>
+                        <label for="account_id" class="block text-sm font-medium text-gray-700 mb-2">
+                            Account to Update
+                        </label>
+                        <div class="relative">
+                            <select
+                                name="account_id"
+                                id="account_id"
+                                class="block w-full rounded-lg border-gray-300 bg-white py-2.5 pl-3 pr-10 text-gray-900 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm appearance-none cursor-pointer"
+                                onchange="this.form.submit()"
+                            >
+                                <option value="">Select an account...</option>
+                                {% for account in accounts %}
+                                <option value="{{ account.id }}" {% if request.args.get('account_id') == account.id %}selected{% endif %}>
+                                    {% if account.is_sub_account %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %}
+                                    {{ account.name }}
+                                    {% if account.balance %}({{ account.balance }}){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                                <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Date Filter -->
+                    <div>
+                        <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">
+                            Start Date
+                        </label>
+                        <input
+                            type="date"
+                            name="start_date"
+                            id="start_date"
+                            value="{{ start_date }}"
+                            class="block w-full rounded-lg border-gray-300 bg-white py-2.5 px-3 text-gray-900 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                         >
-                            <option value="">Select an account...</option>
-                            {% for account in accounts %}
-                            <option value="{{ account.id }}" {% if request.args.get('account_id') == account.id %}selected{% endif %}>
-                                {% if account.is_sub_account %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %}
-                                {{ account.name }}
-                                {% if account.balance %}({{ account.balance }}){% endif %}
-                            </option>
-                            {% endfor %}
-                        </select>
                     </div>
                 </div>
 
-                <!-- Date Filter -->
-                <div>
-                    <label for="start_date" class="block text-sm font-medium text-gray-700">Start Date</label>
-                    <div class="mt-1">
-                        <input 
-                            type="date" 
-                            name="start_date" 
-                            id="start_date"
-                            value="{{ start_date }}"
-                            class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                        >
-                    </div>
+                <!-- Filter Button -->
+                <div class="mt-6 flex justify-end">
+                    <button type="submit"
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                        </svg>
+                        Apply Filters
+                    </button>
                 </div>
-            </div>
-    
-            <!-- Filter Button below both inputs -->
-            <div class="mt-4 flex justify-end">
-                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                    Apply Filters
-                </button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 
     <!-- Error Message -->
     {% if error %}
-    <div class="rounded-md bg-red-50 p-4 mt-4">
+    <div class="rounded-xl bg-red-50 border border-red-200 p-4" role="alert">
         <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                </svg>
+            </div>
             <div class="ml-3">
                 <h3 class="text-sm font-medium text-red-800">Error</h3>
-                <div class="mt-2 text-sm text-red-700">
-                    <p>{{ error }}</p>
-                </div>
+                <p class="mt-1 text-sm text-red-700">{{ error }}</p>
             </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- Journal Entries with Changes -->
+    <!-- Journal Entries -->
     {% if journals %}
-    <div class="border-t border-gray-200">
-        <ul class="divide-y divide-gray-200">
+    <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">
+            <h2 class="text-base font-semibold text-gray-900 flex items-center">
+                <svg class="mr-2 h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                </svg>
+                Journal Entries with Changes
+                <span class="ml-2 inline-flex items-center rounded-full bg-primary-100 px-2.5 py-0.5 text-xs font-medium text-primary-800" id="journalCount">
+                    {{ journals | selectattr('has_changes') | list | length }}
+                </span>
+            </h2>
+        </div>
+        <ul class="divide-y divide-gray-200" id="journalList" role="list">
             {% for journal in journals %}
                 {% if journal.has_changes %}
-                <li class="p-4 hover:bg-gray-50" data-journal-id="{{ journal.id }}">
-                    <div class="mb-2">
-                        <span class="text-sm text-gray-500">Date: {{ journal.date }}</span>
-                    </div>
-                    
-                    {% for line in journal.lines %}
-                    <div class="ml-4 mb-2">
-                        <div class="text-sm">
-                            <span class="font-medium">Description:</span> {{ line.description }}
-                        </div>
-                        <div class="text-sm">
-                            <span class="font-medium">Amount:</span> 
-                            {{ line.amount }} ({{ line.posting_type }})
-                        </div>
-                        
-                        {% if line.proposed_account %}
-                        <div class="flex items-center mt-1">
-                            <div class="text-sm text-red-500 line-through mr-2">
-                                Current: {{ line.current_account.name }}
+                <li class="p-4 sm:p-6 hover:bg-gray-50 transition-colors" data-journal-id="{{ journal.id }}">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-shrink-0">
+                                <span class="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-primary-100">
+                                    <svg class="h-5 w-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                    </svg>
+                                </span>
                             </div>
-                            <div class="text-sm text-green-500">
-                                → New: {{ line.proposed_account.name }}
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">Journal #{{ journal.id }}</p>
+                                <p class="text-sm text-gray-500">{{ journal.date }}</p>
                             </div>
-                            <button class="ml-2 text-red-600 text-sm hover:text-red-800"
-                                    onclick="removeChange('{{ journal.id }}')">
-                                Remove
-                            </button>
                         </div>
-                        {% else %}
-                        <div class="text-sm">
-                            Account: {{ line.current_account.name }}
-                        </div>
-                        {% endif %}
+                        <button class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                                onclick="removeChange('{{ journal.id }}')"
+                                aria-label="Remove change for journal {{ journal.id }}">
+                            <svg class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Remove
+                        </button>
                     </div>
-                    {% endfor %}
+
+                    <div class="mt-4 space-y-3">
+                        {% for line in journal.lines %}
+                        <div class="ml-13 pl-4 border-l-2 border-gray-200">
+                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                                <span class="font-medium text-gray-700">{{ line.description }}</span>
+                                <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                                    {{ line.amount }} ({{ line.posting_type }})
+                                </span>
+                            </div>
+
+                            {% if line.proposed_account %}
+                            <div class="mt-2 flex flex-wrap items-center gap-2">
+                                <span class="inline-flex items-center rounded-md bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 line-through">
+                                    {{ line.current_account.name }}
+                                </span>
+                                <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                                </svg>
+                                <span class="inline-flex items-center rounded-md bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+                                    {{ line.proposed_account.name }}
+                                </span>
+                            </div>
+                            {% else %}
+                            <p class="mt-1 text-sm text-gray-500">
+                                Account: {{ line.current_account.name }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
                 </li>
                 {% endif %}
             {% endfor %}
         </ul>
     </div>
     {% else %}
-    <div class="text-center py-8">
-        <p class="text-gray-500">No journal entries found for this account.</p>
+    <!-- Empty State -->
+    <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+        <div class="text-center py-12 px-4">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+            </svg>
+            <h3 class="mt-4 text-sm font-semibold text-gray-900">No journal entries found</h3>
+            <p class="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
+                Select an account and date range above to view journal entries with pending account mapping changes.
+            </p>
+            <div class="mt-6">
+                <a href="{{ url_for('mapping.mapping_config') }}"
+                   class="inline-flex items-center px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700">
+                    <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Configure account mappings
+                </a>
+            </div>
+        </div>
     </div>
     {% endif %}
 </div>
-<!-- JavaScript for handling updates -->
+
 <script>
-    // Add to your existing script section
+    // Date filter auto-submit
     document.getElementById('start_date').addEventListener('change', function() {
-        // Only auto-submit if an account is selected
         if (document.querySelector('select[name="account_id"]').value) {
             document.getElementById('filterForm').submit();
         }
     });
 
+    // Remove change from list
     const removeChange = (journalId) => {
         const element = document.querySelector(`li[data-journal-id="${journalId}"]`);
         if (element) {
-            element.remove();
+            element.classList.add('opacity-0', 'scale-95');
+            element.style.transition = 'all 200ms ease-out';
+            setTimeout(() => {
+                element.remove();
+                updateJournalCount();
+            }, 200);
         }
     };
-    
+
+    // Update journal count badge
+    const updateJournalCount = () => {
+        const count = document.querySelectorAll('li[data-journal-id]').length;
+        const badge = document.getElementById('journalCount');
+        if (badge) {
+            badge.textContent = count;
+        }
+    };
+
+    // Handle update all button
     document.getElementById('updateAll').addEventListener('click', async () => {
         const journals = Array.from(document.querySelectorAll('li[data-journal-id]'))
             .map(el => el.dataset.journalId);
-        
+
         if (journals.length === 0) {
-            alert('No changes to apply');
+            window.showToast('No changes to apply', 'warning');
             return;
         }
-    
-        if (!confirm('Are you sure you want to apply these changes?')) {
+
+        const confirmed = await window.showConfirm({
+            title: 'Apply Changes',
+            message: `You are about to update ${journals.length} journal ${journals.length === 1 ? 'entry' : 'entries'}. This will modify the account assignments in QuickBooks. This action cannot be undone.`,
+            confirmText: 'Apply Changes',
+            cancelText: 'Cancel',
+            type: 'warning'
+        });
+
+        if (!confirmed) {
             return;
         }
-    
+
+        const btn = document.getElementById('updateAll');
+        const icon = document.getElementById('updateIcon');
+        const spinner = document.getElementById('updateSpinner');
+        const text = document.getElementById('updateText');
+
+        // Show loading state
+        btn.disabled = true;
+        icon.classList.add('hidden');
+        spinner.classList.remove('hidden');
+        text.textContent = 'Updating...';
+
         try {
             const response = await fetch('/journals/update', {
                 method: 'POST',
@@ -162,21 +288,28 @@
                 },
                 body: JSON.stringify({ journals })
             });
-    
+
             if (!response.ok) {
                 throw new Error('Failed to update journals');
             }
-    
+
             const result = await response.json();
-        
-            // Show success message with details
             const updatedCount = result.updated.length;
-            alert(`Successfully updated ${updatedCount} journal entries!`);
-            
-            // Reload the page to show updated data
-            window.location.reload();
+
+            window.showToast(`Successfully updated ${updatedCount} journal entries!`, 'success');
+
+            // Reload after short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
         } catch (error) {
-            alert('Error updating journals: ' + error.message);
+            window.showToast('Error updating journals: ' + error.message, 'error');
+
+            // Reset button state
+            btn.disabled = false;
+            icon.classList.remove('hidden');
+            spinner.classList.add('hidden');
+            text.textContent = 'Update Selected';
         }
     });
 </script>
