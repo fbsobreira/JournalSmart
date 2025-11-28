@@ -38,3 +38,5 @@ wheels/
 # Logs
 *.log
 logs/
+
+*.pem

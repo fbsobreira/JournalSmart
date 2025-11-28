@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-white shadow sm:rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Account Mapping Configuration</h3>
+        
+        <!-- Current Mappings -->
+        <div class="mt-6">
+            <h4 class="text-md font-medium text-gray-900 mb-4">Current Mappings from Environment</h4>
+            <div class="bg-gray-50 p-4 rounded-lg">
+                {% if mappings %}
+                    <div class="space-y-4">
+                    {% for mapping in mappings %}
+                        <div class="border-b border-gray-200 pb-4">
+                            <div class="grid grid-cols-3 gap-4">
+                                <div>
+                                    <span class="text-sm font-medium text-gray-500">Pattern:</span>
+                                    <span class="text-sm text-gray-900 ml-2">{{ mapping.pattern }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-500">From Account:</span>
+                                    <span class="text-sm text-gray-900 ml-2">
+                                        {% for account in accounts %}
+                                            {% if account.id == mapping.from_account_id %}
+                                                {{ account.name }}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-500">To Account:</span>
+                                    <span class="text-sm text-gray-900 ml-2">
+                                        {% for account in accounts %}
+                                            {% if account.id == mapping.to_account_id %}
+                                                {{ account.name }}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-500">No mappings configured in environment.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Copy Configuration -->
+        <div class="mt-6">
+            <h4 class="text-md font-medium text-gray-900 mb-2">Copy Configuration</h4>
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-500 mb-2">Copy this to your .env file:</p>
+                <div class="relative">
+                    <textarea 
+                        id="mappingConfig" 
+                        readonly 
+                        class="w-full h-24 p-2 text-sm font-mono bg-gray-100 border border-gray-300 rounded"
+                    >ACCOUNT_MAPPINGS={{ mappings | tojson }}</textarea>
+                    <button 
+                        onclick="copyToClipboard()"
+                        class="absolute top-2 right-2 px-3 py-1 text-sm text-white bg-blue-500 rounded hover:bg-blue-600"
+                    >
+                        Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard() {
+    const textarea = document.getElementById('mappingConfig');
+    textarea.select();
+    document.execCommand('copy');
+    
+    // Show feedback
+    const button = event.target;
+    const originalText = button.textContent;
+    button.textContent = 'Copied!';
+    setTimeout(() => {
+        button.textContent = originalText;
+    }, 2000);
+}
+</script>
+{% endblock %}

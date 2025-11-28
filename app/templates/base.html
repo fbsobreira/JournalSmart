@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JournalSmart for QBO</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <a href="{{ url_for('journal.list_journals') }}" class="flex-shrink-0 flex items-center">
+                        JournalSmart for QBO
+                    </a>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="{{ url_for('journal.list_journals') }}" 
+                           class="{% if request.endpoint.startswith('journal.') %}text-gray-900 border-indigo-500{% else %}text-gray-500 border-transparent{% endif %} inline-flex items-center px-1 pt-1 border-b-2">
+                            Journals
+                        </a>
+                        <a href="{{ url_for('mapping.mapping_config') }}" 
+                           class="{% if request.endpoint.startswith('mapping.') %}text-gray-900 border-indigo-500{% else %}text-gray-500 border-transparent{% endif %} inline-flex items-center px-1 pt-1 border-b-2">
+                            Mapping Config
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {% block content %}{% endblock %}
+    </main>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

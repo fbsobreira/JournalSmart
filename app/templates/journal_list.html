@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+        <h2 class="text-lg leading-6 font-medium text-gray-900">Journal Updates</h2>
+        <button id="updateAll" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            Update Selected Entries
+        </button>
+    </div>
+
+    <!-- Account Selection -->
+    <div class="px-4 py-3 border-t border-gray-200">
+        <form method="get" action="{{ url_for('journal.list_journals') }}" id="filterForm">
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Account Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Select Account to Update</label>
+                    <div class="mt-1">
+                        <select 
+                            name="account_id" 
+                            class="block w-full rounded-md border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
+                            onchange="this.form.submit()"
+                        >
+                            <option value="">Select an account...</option>
+                            {% for account in accounts %}
+                            <option value="{{ account.id }}" {% if request.args.get('account_id') == account.id %}selected{% endif %}>
+                                {% if account.is_sub_account %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %}
+                                {{ account.name }}
+                                {% if account.balance %}({{ account.balance }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Date Filter -->
+                <div>
+                    <label for="start_date" class="block text-sm font-medium text-gray-700">Start Date</label>
+                    <div class="mt-1">
+                        <input 
+                            type="date" 
+                            name="start_date" 
+                            id="start_date"
+                            value="{{ start_date }}"
+                            class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        >
+                    </div>
+                </div>
+            </div>
+    
+            <!-- Filter Button below both inputs -->
+            <div class="mt-4 flex justify-end">
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                    Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Error Message -->
+    {% if error %}
+    <div class="rounded-md bg-red-50 p-4 mt-4">
+        <div class="flex">
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">Error</h3>
+                <div class="mt-2 text-sm text-red-700">
+                    <p>{{ error }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Journal Entries with Changes -->
+    {% if journals %}
+    <div class="border-t border-gray-200">
+        <ul class="divide-y divide-gray-200">
+            {% for journal in journals %}
+                {% if journal.has_changes %}
+                <li class="p-4 hover:bg-gray-50" data-journal-id="{{ journal.id }}">
+                    <div class="mb-2">
+                        <span class="text-sm text-gray-500">Date: {{ journal.date }}</span>
+                    </div>
+                    
+                    {% for line in journal.lines %}
+                    <div class="ml-4 mb-2">
+                        <div class="text-sm">
+                            <span class="font-medium">Description:</span> {{ line.description }}
+                        </div>
+                        <div class="text-sm">
+                            <span class="font-medium">Amount:</span> 
+                            {{ line.amount }} ({{ line.posting_type }})
+                        </div>
+                        
+                        {% if line.proposed_account %}
+                        <div class="flex items-center mt-1">
+                            <div class="text-sm text-red-500 line-through mr-2">
+                                Current: {{ line.current_account.name }}
+                            </div>
+                            <div class="text-sm text-green-500">
+                                → New: {{ line.proposed_account.name }}
+                            </div>
+                            <button class="ml-2 text-red-600 text-sm hover:text-red-800"
+                                    onclick="removeChange('{{ journal.id }}')">
+                                Remove
+                            </button>
+                        </div>
+                        {% else %}
+                        <div class="text-sm">
+                            Account: {{ line.current_account.name }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <div class="text-center py-8">
+        <p class="text-gray-500">No journal entries found for this account.</p>
+    </div>
+    {% endif %}
+</div>
+<!-- JavaScript for handling updates -->
+<script>
+    // Add to your existing script section
+    document.getElementById('start_date').addEventListener('change', function() {
+        // Only auto-submit if an account is selected
+        if (document.querySelector('select[name="account_id"]').value) {
+            document.getElementById('filterForm').submit();
+        }
+    });
+
+    const removeChange = (journalId) => {
+        const element = document.querySelector(`li[data-journal-id="${journalId}"]`);
+        if (element) {
+            element.remove();
+        }
+    };
+    
+    document.getElementById('updateAll').addEventListener('click', async () => {
+        const journals = Array.from(document.querySelectorAll('li[data-journal-id]'))
+            .map(el => el.dataset.journalId);
+        
+        if (journals.length === 0) {
+            alert('No changes to apply');
+            return;
+        }
+    
+        if (!confirm('Are you sure you want to apply these changes?')) {
+            return;
+        }
+    
+        try {
+            const response = await fetch('/journals/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ journals })
+            });
+    
+            if (!response.ok) {
+                throw new Error('Failed to update journals');
+            }
+    
+            const result = await response.json();
+        
+            // Show success message with details
+            const updatedCount = result.updated.length;
+            alert(`Successfully updated ${updatedCount} journal entries!`);
+            
+            // Reload the page to show updated data
+            window.location.reload();
+        } catch (error) {
+            alert('Error updating journals: ' + error.message);
+        }
+    });
+</script>
+{% endblock %}
