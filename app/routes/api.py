@@ -437,3 +437,47 @@ def history_stats():
     except Exception as e:
         logger.error(f"Error getting history stats: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+
+# =============================================================================
+# System Status Endpoints
+# =============================================================================
+
+@bp.route('/status', methods=['GET'])
+def system_status():
+    """Get system status including encryption status"""
+    from app.models.qbo_connection import QBOConnection
+    from flask import current_app
+
+    try:
+        # Check QBO connection and encryption
+        connection = QBOConnection.query.first()
+
+        qbo_status = {
+            'connected': False,
+            'tokens_encrypted': False
+        }
+
+        if connection:
+            qbo_status['connected'] = True
+            qbo_status['tokens_encrypted'] = connection.tokens_encrypted
+
+        # Check if encryption key is configured (not auto-generated)
+        import os
+        encryption_key_set = bool(os.getenv('ENCRYPTION_KEY'))
+
+        return jsonify({
+            'success': True,
+            'status': {
+                'qbo_connection': qbo_status,
+                'encryption': {
+                    'key_configured': encryption_key_set,
+                    'tokens_encrypted': qbo_status['tokens_encrypted']
+                }
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting system status: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+

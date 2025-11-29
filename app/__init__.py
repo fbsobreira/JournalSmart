@@ -87,6 +87,13 @@ def create_app(config_class=Config):
     from app.services.qbo import init_qbo
     init_qbo(app)
 
+    # Migrate any plain text tokens to encrypted (safe to run multiple times)
+    with app.app_context():
+        from app.services.token_service import token_service
+        migrated = token_service.migrate_to_encrypted_tokens()
+        if migrated > 0:
+            app.logger.info(f"Migrated {migrated} connection(s) to encrypted tokens")
+
     # Register blueprints
     from app.routes import journal, mapping, auth, api, history
     app.register_blueprint(journal.bp)

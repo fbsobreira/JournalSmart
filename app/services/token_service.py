@@ -6,9 +6,9 @@ Token persistence and management service
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from flask import current_app
 from app.extensions import db
 from app.models.qbo_connection import QBOConnection
+from app.utils.encryption import encrypt_token, is_encrypted
 
 logger = logging.getLogger(__name__)
 
@@ -217,6 +217,52 @@ class TokenService:
         except Exception as e:
             logger.error(f"Error getting connection: {str(e)}")
             return None
+
+    @staticmethod
+    def migrate_to_encrypted_tokens() -> int:
+        """
+        Migrate any existing plain text tokens to encrypted format.
+        Safe to run multiple times - only encrypts unencrypted tokens.
+
+        Returns:
+            Number of connections migrated
+        """
+        migrated = 0
+        try:
+            connections = QBOConnection.query.all()
+
+            for conn in connections:
+                needs_migration = False
+
+                # Check if access token needs encryption
+                if conn._access_token and not is_encrypted(conn._access_token):
+                    logger.info(f"Encrypting access token for realm {conn.realm_id}")
+                    # Store plain text temporarily
+                    plain_access = conn._access_token
+                    # Encrypt via setter
+                    conn._access_token = encrypt_token(plain_access)
+                    needs_migration = True
+
+                # Check if refresh token needs encryption
+                if conn._refresh_token and not is_encrypted(conn._refresh_token):
+                    logger.info(f"Encrypting refresh token for realm {conn.realm_id}")
+                    plain_refresh = conn._refresh_token
+                    conn._refresh_token = encrypt_token(plain_refresh)
+                    needs_migration = True
+
+                if needs_migration:
+                    migrated += 1
+
+            if migrated > 0:
+                db.session.commit()
+                logger.info(f"Migrated {migrated} connection(s) to encrypted tokens")
+
+            return migrated
+
+        except Exception as e:
+            logger.error(f"Error migrating tokens: {str(e)}")
+            db.session.rollback()
+            return 0
 
 
 # Module-level singleton

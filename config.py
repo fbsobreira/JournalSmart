@@ -8,13 +8,33 @@ import json
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
+from cryptography.fernet import Fernet
 
 load_dotenv(override=True)
+
+
+def get_or_generate_encryption_key() -> str:
+    """
+    Get encryption key from environment or generate a new one.
+    In production, ENCRYPTION_KEY should always be set in .env
+    """
+    key = os.getenv('ENCRYPTION_KEY')
+    if not key:
+        # Generate a key for development (logged as warning)
+        logging.warning(
+            "ENCRYPTION_KEY not set - generating temporary key. "
+            "Set ENCRYPTION_KEY in .env for production!"
+        )
+        key = Fernet.generate_key().decode()
+    return key
 
 
 class Config:
     # Flask
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
+
+    # Encryption key for tokens at rest
+    ENCRYPTION_KEY = get_or_generate_encryption_key()
 
     # App Password (optional - leave empty to disable)
     APP_PASSWORD = os.getenv('APP_PASSWORD', '')
