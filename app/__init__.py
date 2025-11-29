@@ -66,6 +66,24 @@ def run_migrations(app):
             app.logger.info("Migration complete: sort_order column added")
 
 
+def register_security_headers(app):
+    """Register security headers on all responses"""
+
+    @app.after_request
+    def add_security_headers(response):
+        # Prevent MIME type sniffing
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        # Prevent clickjacking
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        # XSS protection (legacy browsers)
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        # Referrer policy
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        # Permissions policy (restrict browser features)
+        response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+        return response
+
+
 def register_error_handlers(app):
     """Register error handlers for common HTTP errors"""
 
@@ -134,6 +152,9 @@ def create_app(config_class=Config):
 
     # Register error handlers
     register_error_handlers(app)
+
+    # Register security headers
+    register_security_headers(app)
 
     app.logger.info("JournalSmart initialized successfully")
 

@@ -32,6 +32,7 @@ def get_or_generate_encryption_key() -> str:
 class Config:
     # Flask
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
+    DEBUG = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'  # Disabled by default
 
     # Session Security
     SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
