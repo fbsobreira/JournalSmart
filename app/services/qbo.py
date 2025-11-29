@@ -50,6 +50,11 @@ class QBOService:
             if connection:
                 logger.info(f"Loaded saved tokens for company: {connection.company_name or connection.realm_id}")
 
+                # Proactively refresh tokens if they're expired or expiring soon
+                if not token_service.refresh_tokens_if_needed(self.auth_client, self):
+                    # Refresh failed - tokens might be too old
+                    logger.warning("Token refresh failed at startup - user may need to re-authenticate")
+
     def authenticate(self):
         """Initialize QuickBooks client with OAuth tokens"""
         if not self.auth_client.access_token:
@@ -129,7 +134,15 @@ class QBOService:
             return [self._format_account(account) for account in accounts]
 
         except Exception as e:
-            logger.error(f"Error fetching accounts: {str(e)}")
+            error_str = str(e)
+            logger.error(f"Error fetching accounts: {error_str}")
+
+            # Check for auth errors and clear invalid tokens
+            if '401' in error_str or 'AuthenticationFailed' in error_str:
+                logger.warning("QBO authentication failed - clearing invalid tokens")
+                self.auth_client.access_token = None
+                self.auth_client.refresh_token = None
+
             return []
 
     def get_account_by_id(self, account_id: str) -> Optional[Dict[str, Any]]:

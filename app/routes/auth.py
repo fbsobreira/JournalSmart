@@ -57,9 +57,18 @@ def login():
 
 @bp.route('/logout')
 def logout():
-    """Logout - clear all session data"""
+    """Logout - clear app session but preserve QBO connection"""
+    # Preserve QBO realm_id so connection stays active
+    qbo_realm_id = session.get('qbo_realm_id')
+
+    # Clear session
     session.clear()
-    logger.info("User logged out")
+
+    # Restore QBO realm_id if it was set
+    if qbo_realm_id:
+        session['qbo_realm_id'] = qbo_realm_id
+
+    logger.info("User logged out (QBO connection preserved)")
     return redirect(url_for('auth.login'))
 
 

@@ -151,14 +151,30 @@ class TokenService:
             # Save the new tokens
             TokenService.save_tokens(auth_client, connection.company_name)
 
-            # Re-authenticate the QBO client with new tokens
-            qbo_service.authenticate()
+            # Re-initialize the QBO client with new tokens (avoid recursive authenticate call)
+            if qbo_service.qb:
+                from quickbooks import QuickBooks
+                qbo_service.qb = QuickBooks(
+                    auth_client=auth_client,
+                    refresh_token=auth_client.refresh_token,
+                    company_id=auth_client.realm_id,
+                    minorversion=65
+                )
 
             logger.info("Tokens refreshed successfully")
             return True
 
         except Exception as e:
-            logger.error(f"Error refreshing tokens: {str(e)}")
+            error_str = str(e)
+            logger.error(f"Error refreshing tokens: {error_str}")
+
+            # If refresh fails due to invalid/expired refresh token, clear tokens
+            # so user gets redirected to re-authenticate
+            if '401' in error_str or 'invalid_grant' in error_str.lower() or 'expired' in error_str.lower():
+                logger.warning("Refresh token invalid/expired - clearing tokens for re-auth")
+                auth_client.access_token = None
+                auth_client.refresh_token = None
+
             return False
 
     @staticmethod
