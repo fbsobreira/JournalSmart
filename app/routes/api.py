@@ -20,15 +20,17 @@ logger = logging.getLogger(__name__)
 @bp.route('/mappings', methods=['GET'])
 @require_qbo_auth
 def list_mappings():
-    """Get all account mappings"""
+    """Get all account mappings ordered by sort_order"""
     try:
         # Get optional filter parameters
         active_only = request.args.get('active', 'true').lower() == 'true'
 
+        query = DBAccountMapping.query.order_by(DBAccountMapping.sort_order.asc())
+
         if active_only:
-            mappings = DBAccountMapping.query.filter_by(is_active=True).all()
-        else:
-            mappings = DBAccountMapping.query.all()
+            query = query.filter_by(is_active=True)
+
+        mappings = query.all()
 
         logger.debug(f"Retrieved {len(mappings)} mappings")
 
@@ -71,14 +73,15 @@ def create_mapping():
                 'error': 'A mapping with this pattern and source account already exists'
             }), 409
 
-        # Create new mapping
+        # Create new mapping with next sort_order
         mapping = DBAccountMapping(
             pattern=data['pattern'],
             from_account_id=data['from_account_id'],
             from_account_name=data.get('from_account_name'),
             to_account_id=data['to_account_id'],
             to_account_name=data.get('to_account_name'),
-            is_active=data.get('is_active', True)
+            is_active=data.get('is_active', True),
+            sort_order=DBAccountMapping.get_next_sort_order()
         )
 
         db.session.add(mapping)
@@ -209,6 +212,42 @@ def toggle_mapping(mapping_id):
 
     except Exception as e:
         logger.error(f"Error toggling mapping {mapping_id}: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/mappings/reorder', methods=['POST'])
+@require_qbo_auth
+def reorder_mappings():
+    """Reorder mappings by updating their sort_order values"""
+    try:
+        data = request.json
+
+        if not data or 'order' not in data:
+            return jsonify({'error': 'No order provided'}), 400
+
+        order = data['order']
+
+        if not isinstance(order, list):
+            return jsonify({'error': 'Order must be an array of mapping IDs'}), 400
+
+        # Update sort_order for each mapping
+        for index, mapping_id in enumerate(order):
+            mapping = DBAccountMapping.query.get(mapping_id)
+            if mapping:
+                mapping.sort_order = index
+
+        db.session.commit()
+
+        logger.info(f"Reordered {len(order)} mappings")
+
+        return jsonify({
+            'success': True,
+            'message': f'Reordered {len(order)} mappings'
+        })
+
+    except Exception as e:
+        logger.error(f"Error reordering mappings: {str(e)}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 

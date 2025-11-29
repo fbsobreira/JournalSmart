@@ -41,6 +41,31 @@ def configure_logging(app):
     logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 
+def run_migrations(app):
+    """Run database migrations for schema changes"""
+    from sqlalchemy import text
+
+    with app.app_context():
+        # Check if sort_order column exists in account_mappings
+        try:
+            result = db.session.execute(
+                text("SELECT sort_order FROM account_mappings LIMIT 1")
+            )
+            result.close()
+        except Exception:
+            # Column doesn't exist, add it
+            app.logger.info("Adding sort_order column to account_mappings table...")
+            db.session.execute(
+                text("ALTER TABLE account_mappings ADD COLUMN sort_order INTEGER DEFAULT 0 NOT NULL")
+            )
+            # Set initial sort_order based on id
+            db.session.execute(
+                text("UPDATE account_mappings SET sort_order = id")
+            )
+            db.session.commit()
+            app.logger.info("Migration complete: sort_order column added")
+
+
 def register_error_handlers(app):
     """Register error handlers for common HTTP errors"""
 
@@ -82,6 +107,9 @@ def create_app(config_class=Config):
         from app.models import QBOConnection, DBAccountMapping, UpdateHistory  # noqa: F401
         db.create_all()
         app.logger.info(f"Database initialized at {app.config.get('SQLALCHEMY_DATABASE_URI')}")
+
+    # Run database migrations
+    run_migrations(app)
 
     # Initialize QBO service
     from app.services.qbo import init_qbo

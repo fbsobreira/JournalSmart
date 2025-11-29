@@ -41,7 +41,10 @@
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead>
                             <tr>
-                                <th scope="col" class="py-3 pl-4 pr-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 sm:pl-0">Status</th>
+                                <th scope="col" class="w-10 py-3 pl-2 pr-1 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                    <span class="sr-only">Drag</span>
+                                </th>
+                                <th scope="col" class="py-3 pl-2 pr-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</th>
                                 <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Pattern</th>
                                 <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">From Account</th>
                                 <th scope="col" class="px-3 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">To Account</th>
@@ -50,8 +53,15 @@
                         </thead>
                         <tbody id="mappingsTableBody" class="divide-y divide-gray-100 dark:divide-gray-700">
                             {% for mapping in mappings %}
-                            <tr id="mapping-row-{{ mapping.id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-mapping-id="{{ mapping.id }}">
-                                <td class="whitespace-nowrap py-4 pl-4 pr-3 sm:pl-0">
+                            <tr id="mapping-row-{{ mapping.id }}" class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors mapping-row" data-mapping-id="{{ mapping.id }}" draggable="true">
+                                <td class="whitespace-nowrap py-4 pl-2 pr-1">
+                                    <div class="drag-handle cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                                        </svg>
+                                    </div>
+                                </td>
+                                <td class="whitespace-nowrap py-4 pl-2 pr-3">
                                     <button
                                         onclick="toggleMapping({{ mapping.id }})"
                                         class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 {% if mapping.is_active %}bg-primary-600{% else %}bg-gray-200 dark:bg-gray-600{% endif %}"
@@ -162,6 +172,7 @@
                             <li><strong>From Account:</strong> The account where matching entries are currently posted</li>
                             <li><strong>To Account:</strong> The account where entries should be moved to</li>
                             <li><strong>Toggle:</strong> Enable or disable a mapping without deleting it</li>
+                            <li><strong>Reorder:</strong> Drag mappings using the handle (<svg class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>) to set priority — mappings are applied in order from top to bottom</li>
                         </ul>
                     </div>
                 </div>
@@ -829,5 +840,127 @@ function formatAmount(amount) {
 function hideTestResults() {
     document.getElementById('patternTestResults').classList.add('hidden');
 }
+
+// =============================================================================
+// Drag and Drop Reordering
+// =============================================================================
+
+let draggedRow = null;
+
+function initDragAndDrop() {
+    const tbody = document.getElementById('mappingsTableBody');
+    if (!tbody) return;
+
+    const rows = tbody.querySelectorAll('.mapping-row');
+
+    rows.forEach(row => {
+        // Drag start
+        row.addEventListener('dragstart', (e) => {
+            draggedRow = row;
+            row.classList.add('opacity-50', 'bg-primary-50', 'dark:bg-primary-900/20');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', row.dataset.mappingId);
+        });
+
+        // Drag end
+        row.addEventListener('dragend', () => {
+            row.classList.remove('opacity-50', 'bg-primary-50', 'dark:bg-primary-900/20');
+            draggedRow = null;
+
+            // Remove all drop indicators
+            rows.forEach(r => {
+                r.classList.remove('border-t-2', 'border-b-2', 'border-primary-500');
+            });
+        });
+
+        // Drag over
+        row.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            if (draggedRow === row) return;
+
+            // Show drop indicator
+            const rect = row.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+
+            rows.forEach(r => {
+                r.classList.remove('border-t-2', 'border-b-2', 'border-primary-500');
+            });
+
+            if (e.clientY < midY) {
+                row.classList.add('border-t-2', 'border-primary-500');
+            } else {
+                row.classList.add('border-b-2', 'border-primary-500');
+            }
+        });
+
+        // Drag leave
+        row.addEventListener('dragleave', () => {
+            row.classList.remove('border-t-2', 'border-b-2', 'border-primary-500');
+        });
+
+        // Drop
+        row.addEventListener('drop', async (e) => {
+            e.preventDefault();
+
+            if (draggedRow === row) return;
+
+            // Remove drop indicators
+            rows.forEach(r => {
+                r.classList.remove('border-t-2', 'border-b-2', 'border-primary-500');
+            });
+
+            // Determine drop position
+            const rect = row.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            const insertBefore = e.clientY < midY;
+
+            // Reorder in DOM
+            if (insertBefore) {
+                tbody.insertBefore(draggedRow, row);
+            } else {
+                tbody.insertBefore(draggedRow, row.nextSibling);
+            }
+
+            // Save new order to server
+            await saveNewOrder();
+        });
+    });
+}
+
+async function saveNewOrder() {
+    const tbody = document.getElementById('mappingsTableBody');
+    const rows = tbody.querySelectorAll('.mapping-row');
+
+    // Get new order of mapping IDs
+    const order = Array.from(rows).map(row => parseInt(row.dataset.mappingId));
+
+    try {
+        const response = await fetch('/api/mappings/reorder', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ order: order })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            window.showToast('Mapping order saved', 'success');
+        } else {
+            window.showToast(result.error || 'Failed to save order', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving order:', error);
+        window.showToast('Failed to save order', 'error');
+    }
+}
+
+// Initialize drag and drop when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    initDragAndDrop();
+});
 </script>
 {% endblock %}
