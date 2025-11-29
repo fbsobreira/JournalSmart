@@ -7,7 +7,7 @@ import logging
 import sys
 from flask import Flask, render_template
 from config import Config
-from app.extensions import db
+from app.extensions import db, csrf
 
 
 def configure_logging(app):
@@ -100,8 +100,10 @@ def create_app(config_class=Config):
     configure_logging(app)
     app.logger.info("JournalSmart starting up...")
 
-    # Initialize database
+    # Initialize extensions
     db.init_app(app)
+    csrf.init_app(app)
+
     with app.app_context():
         # Import models to ensure they're registered
         from app.models import QBOConnection, DBAccountMapping, UpdateHistory  # noqa: F401

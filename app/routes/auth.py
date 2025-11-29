@@ -8,6 +8,7 @@ from datetime import timedelta
 from flask import Blueprint, redirect, url_for, session, request, render_template, current_app
 from app.services.qbo import qbo_service
 from app.services.token_service import token_service
+from app.utils.decorators import require_app_password
 from intuitlib.enums import Scopes
 from intuitlib.exceptions import AuthClientError
 
@@ -154,6 +155,7 @@ def callback():
 
 
 @bp.route('/disconnect')
+@require_app_password
 def disconnect():
     """Disconnect QuickBooks (clear QBO tokens, keep app password session)"""
     try:

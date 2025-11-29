@@ -9,4 +9,4 @@ create:
 		pip install -r requirements.txt
 
 redirect:
-	ngrok http --url=kite-hardy-doe.ngrok-free.app 9090
+	ngrok http 9090

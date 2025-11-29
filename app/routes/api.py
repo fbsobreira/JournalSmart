@@ -2,14 +2,18 @@
 """
 /app/routes/api.py
 REST API endpoints for mappings and other resources
+
+Note: CSRF exempt because API uses JSON Content-Type (not submittable by HTML forms)
+      and is protected by same-origin policy + session authentication.
 """
 import logging
 from flask import Blueprint, jsonify, request
-from app.extensions import db
+from app.extensions import db, csrf
 from app.models.db_account_mapping import DBAccountMapping
 from app.utils.decorators import require_qbo_auth
 
 bp = Blueprint('api', __name__, url_prefix='/api')
+csrf.exempt(bp)  # API uses JSON, protected by Content-Type + same-origin policy
 logger = logging.getLogger(__name__)
 
 
