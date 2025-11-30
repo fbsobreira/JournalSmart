@@ -51,6 +51,12 @@ class Config:
     QBO_REDIRECT_URI = os.getenv('QBO_REDIRECT_URI')
     QBO_ENVIRONMENT = os.getenv('QBO_ENVIRONMENT', 'sandbox')
 
+    # Server
+    HOST = os.getenv('HOST', '0.0.0.0')
+    PORT = int(os.getenv('PORT', '443'))
+    SSL_CERT = os.getenv('SSL_CERT', '')  # Path to SSL certificate
+    SSL_KEY = os.getenv('SSL_KEY', '')    # Path to SSL key
+
     # Logging
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
