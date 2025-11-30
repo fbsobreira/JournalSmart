@@ -3,17 +3,16 @@
 /app/routes/api.py
 REST API endpoints for mappings and other resources
 
-Note: CSRF exempt because API uses JSON Content-Type (not submittable by HTML forms)
-      and is protected by same-origin policy + session authentication.
+CSRF protection: All POST/PUT/DELETE requests require X-CSRFToken header.
+The token is automatically added by main.js fetch override.
 """
 import logging
 from flask import Blueprint, jsonify, request
-from app.extensions import db, csrf
+from app.extensions import db
 from app.models.db_account_mapping import DBAccountMapping
 from app.utils.decorators import require_qbo_auth
 
 bp = Blueprint('api', __name__, url_prefix='/api')
-csrf.exempt(bp)  # API uses JSON, protected by Content-Type + same-origin policy
 logger = logging.getLogger(__name__)
 
 
@@ -77,6 +76,13 @@ def create_mapping():
                 'error': 'A mapping with this pattern and source account already exists'
             }), 409
 
+        # Validate regex pattern if is_regex is true
+        is_regex = data.get('is_regex', False)
+        if is_regex:
+            is_valid, error = DBAccountMapping.validate_regex(data['pattern'])
+            if not is_valid:
+                return jsonify({'error': f'Invalid regex pattern: {error}'}), 400
+
         # Create new mapping with next sort_order
         mapping = DBAccountMapping(
             pattern=data['pattern'],
@@ -85,6 +91,8 @@ def create_mapping():
             to_account_id=data['to_account_id'],
             to_account_name=data.get('to_account_name'),
             is_active=data.get('is_active', True),
+            is_regex=is_regex,
+            category=data.get('category', '').strip() or None,
             sort_order=DBAccountMapping.get_next_sort_order()
         )
 
@@ -139,6 +147,14 @@ def update_mapping(mapping_id):
         if not data:
             return jsonify({'error': 'No data provided'}), 400
 
+        # Validate regex pattern if changing to regex mode
+        is_regex = data.get('is_regex', mapping.is_regex)
+        pattern = data.get('pattern', mapping.pattern)
+        if is_regex and ('is_regex' in data or 'pattern' in data):
+            is_valid, error = DBAccountMapping.validate_regex(pattern)
+            if not is_valid:
+                return jsonify({'error': f'Invalid regex pattern: {error}'}), 400
+
         # Update fields if provided
         if 'pattern' in data:
             mapping.pattern = data['pattern']
@@ -152,6 +168,10 @@ def update_mapping(mapping_id):
             mapping.to_account_name = data['to_account_name']
         if 'is_active' in data:
             mapping.is_active = data['is_active']
+        if 'is_regex' in data:
+            mapping.is_regex = data['is_regex']
+        if 'category' in data:
+            mapping.category = data['category'].strip() if data['category'] else None
 
         db.session.commit()
 
@@ -276,12 +296,19 @@ def test_pattern():
 
         pattern = data.get('pattern', '').strip()
         from_account_id = data.get('from_account_id', '').strip()
+        is_regex = data.get('is_regex', False)
 
         if not pattern:
             return jsonify({'error': 'Pattern is required'}), 400
 
         if not from_account_id:
             return jsonify({'error': 'From account is required'}), 400
+
+        # Validate regex if is_regex is true
+        if is_regex:
+            is_valid, error = DBAccountMapping.validate_regex(pattern)
+            if not is_valid:
+                return jsonify({'error': f'Invalid regex pattern: {error}'}), 400
 
         # Get journals from the last 90 days for testing
         start_date = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
@@ -291,16 +318,34 @@ def test_pattern():
 
         # Test pattern against journal descriptions
         matches = []
-        pattern_lower = pattern.lower()
 
         for journal in journals:
             for line in journal.get('lines', []):
                 description = line.get('description', '')
-                if description and pattern_lower in description.lower():
-                    # Find match position for highlighting
-                    match_start = description.lower().find(pattern_lower)
-                    match_end = match_start + len(pattern)
+                if not description:
+                    continue
 
+                match_found = False
+                match_start = -1
+                match_end = -1
+
+                if is_regex:
+                    try:
+                        match = re.search(pattern, description, re.IGNORECASE)
+                        if match:
+                            match_found = True
+                            match_start = match.start()
+                            match_end = match.end()
+                    except re.error:
+                        pass
+                else:
+                    pattern_lower = pattern.lower()
+                    if pattern_lower in description.lower():
+                        match_found = True
+                        match_start = description.lower().find(pattern_lower)
+                        match_end = match_start + len(pattern)
+
+                if match_found:
                     matches.append({
                         'journal_id': journal.get('id'),
                         'journal_date': journal.get('date'),
@@ -311,11 +356,12 @@ def test_pattern():
                         'posting_type': line.get('posting_type')
                     })
 
-        logger.debug(f"Pattern '{pattern}' matched {len(matches)} lines")
+        logger.debug(f"Pattern '{pattern}' (regex={is_regex}) matched {len(matches)} lines")
 
         return jsonify({
             'success': True,
             'pattern': pattern,
+            'is_regex': is_regex,
             'matches': matches[:50],  # Limit to 50 results
             'total_matches': len(matches),
             'truncated': len(matches) > 50
@@ -326,6 +372,47 @@ def test_pattern():
         return jsonify({'error': str(e)}), 500
 
 
+@bp.route('/mappings/validate-regex', methods=['POST'])
+@require_qbo_auth
+def validate_regex():
+    """Validate a regex pattern"""
+    try:
+        data = request.json
+
+        if not data or 'pattern' not in data:
+            return jsonify({'error': 'Pattern is required'}), 400
+
+        pattern = data['pattern']
+        is_valid, error = DBAccountMapping.validate_regex(pattern)
+
+        return jsonify({
+            'success': True,
+            'is_valid': is_valid,
+            'error': error
+        })
+
+    except Exception as e:
+        logger.error(f"Error validating regex: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/mappings/categories', methods=['GET'])
+@require_qbo_auth
+def get_categories():
+    """Get all unique mapping categories"""
+    try:
+        categories = DBAccountMapping.get_categories()
+
+        return jsonify({
+            'success': True,
+            'categories': categories
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting categories: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
 # =============================================================================
 # Import/Export Endpoints
 # =============================================================================
@@ -333,7 +420,7 @@ def test_pattern():
 @bp.route('/mappings/import', methods=['POST'])
 @require_qbo_auth
 def import_mappings():
-    """Import mappings from JSON array (for migration from .env)"""
+    """Import mappings from JSON array"""
     try:
         data = request.json
 
@@ -342,12 +429,23 @@ def import_mappings():
 
         imported = 0
         skipped = 0
+        errors = []
 
-        for mapping_data in data:
+        for idx, mapping_data in enumerate(data):
             # Validate required fields
             if not all(k in mapping_data for k in ['pattern', 'from_account_id', 'to_account_id']):
                 skipped += 1
+                errors.append(f"Item {idx}: Missing required fields")
                 continue
+
+            # Validate regex if is_regex is true
+            is_regex = mapping_data.get('is_regex', False)
+            if is_regex:
+                is_valid, error = DBAccountMapping.validate_regex(mapping_data['pattern'])
+                if not is_valid:
+                    skipped += 1
+                    errors.append(f"Item {idx}: Invalid regex - {error}")
+                    continue
 
             # Check for existing
             existing = DBAccountMapping.query.filter_by(
@@ -357,6 +455,7 @@ def import_mappings():
 
             if existing:
                 skipped += 1
+                errors.append(f"Item {idx}: Duplicate pattern/account")
                 continue
 
             # Create new mapping
@@ -366,7 +465,10 @@ def import_mappings():
                 from_account_name=mapping_data.get('from_account_name'),
                 to_account_id=mapping_data['to_account_id'],
                 to_account_name=mapping_data.get('to_account_name'),
-                is_active=mapping_data.get('is_active', True)
+                is_active=mapping_data.get('is_active', True),
+                is_regex=is_regex,
+                category=mapping_data.get('category', '').strip() or None,
+                sort_order=DBAccountMapping.get_next_sort_order()
             )
             db.session.add(mapping)
             imported += 1
@@ -378,7 +480,8 @@ def import_mappings():
         return jsonify({
             'success': True,
             'imported': imported,
-            'skipped': skipped
+            'skipped': skipped,
+            'errors': errors[:10] if errors else []  # Limit error messages
         })
 
     except Exception as e:
@@ -392,7 +495,7 @@ def import_mappings():
 def export_mappings():
     """Export all mappings as JSON array"""
     try:
-        mappings = DBAccountMapping.query.all()
+        mappings = DBAccountMapping.query.order_by(DBAccountMapping.sort_order.asc()).all()
 
         export_data = [{
             'pattern': m.pattern,
@@ -400,13 +503,54 @@ def export_mappings():
             'from_account_name': m.from_account_name,
             'to_account_id': m.to_account_id,
             'to_account_name': m.to_account_name,
-            'is_active': m.is_active
+            'is_active': m.is_active,
+            'is_regex': m.is_regex,
+            'category': m.category
         } for m in mappings]
 
         return jsonify(export_data)
 
     except Exception as e:
         logger.error(f"Error exporting mappings: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/mappings/check-duplicate', methods=['POST'])
+@require_qbo_auth
+def check_duplicate():
+    """Check if a mapping with the same pattern and from_account already exists"""
+    try:
+        data = request.json
+
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        pattern = data.get('pattern', '').strip()
+        from_account_id = data.get('from_account_id', '').strip()
+        exclude_id = data.get('exclude_id')  # For edit mode
+
+        if not pattern or not from_account_id:
+            return jsonify({'error': 'Pattern and from_account_id required'}), 400
+
+        query = DBAccountMapping.query.filter_by(
+            pattern=pattern,
+            from_account_id=from_account_id,
+            is_active=True
+        )
+
+        if exclude_id:
+            query = query.filter(DBAccountMapping.id != exclude_id)
+
+        existing = query.first()
+
+        return jsonify({
+            'success': True,
+            'is_duplicate': existing is not None,
+            'existing_mapping': existing.to_dict() if existing else None
+        })
+
+    except Exception as e:
+        logger.error(f"Error checking duplicate: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 

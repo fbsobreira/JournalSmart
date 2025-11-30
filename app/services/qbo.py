@@ -203,7 +203,8 @@ class QBOService:
                     AccountMapping(
                         pattern=m.pattern,
                         from_account_id=m.from_account_id,
-                        to_account_id=m.to_account_id
+                        to_account_id=m.to_account_id,
+                        is_regex=m.is_regex
                     ) for m in db_mappings
                 ]
         except Exception as e:

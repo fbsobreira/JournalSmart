@@ -46,24 +46,50 @@ def run_migrations(app):
     from sqlalchemy import text
 
     with app.app_context():
-        # Check if sort_order column exists in account_mappings
+        # Migration 1: Add sort_order column
         try:
             result = db.session.execute(
                 text("SELECT sort_order FROM account_mappings LIMIT 1")
             )
             result.close()
         except Exception:
-            # Column doesn't exist, add it
             app.logger.info("Adding sort_order column to account_mappings table...")
             db.session.execute(
                 text("ALTER TABLE account_mappings ADD COLUMN sort_order INTEGER DEFAULT 0 NOT NULL")
             )
-            # Set initial sort_order based on id
             db.session.execute(
                 text("UPDATE account_mappings SET sort_order = id")
             )
             db.session.commit()
             app.logger.info("Migration complete: sort_order column added")
+
+        # Migration 2: Add is_regex column
+        try:
+            result = db.session.execute(
+                text("SELECT is_regex FROM account_mappings LIMIT 1")
+            )
+            result.close()
+        except Exception:
+            app.logger.info("Adding is_regex column to account_mappings table...")
+            db.session.execute(
+                text("ALTER TABLE account_mappings ADD COLUMN is_regex BOOLEAN DEFAULT 0 NOT NULL")
+            )
+            db.session.commit()
+            app.logger.info("Migration complete: is_regex column added")
+
+        # Migration 3: Add category column
+        try:
+            result = db.session.execute(
+                text("SELECT category FROM account_mappings LIMIT 1")
+            )
+            result.close()
+        except Exception:
+            app.logger.info("Adding category column to account_mappings table...")
+            db.session.execute(
+                text("ALTER TABLE account_mappings ADD COLUMN category VARCHAR(100)")
+            )
+            db.session.commit()
+            app.logger.info("Migration complete: category column added")
 
 
 def register_security_headers(app):

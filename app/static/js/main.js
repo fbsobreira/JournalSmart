@@ -3,6 +3,37 @@
  */
 
 // ============================================
+// CSRF Protection
+// ============================================
+
+/**
+ * Get the CSRF token from the meta tag
+ * @returns {string} The CSRF token
+ */
+function getCSRFToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
+// Override fetch to automatically include CSRF token for non-GET requests
+(function() {
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+        const method = (options.method || 'GET').toUpperCase();
+
+        // Add CSRF token for state-changing requests
+        if (method !== 'GET' && method !== 'HEAD') {
+            options.headers = {
+                ...options.headers,
+                'X-CSRFToken': getCSRFToken()
+            };
+        }
+
+        return originalFetch(url, options);
+    };
+})();
+
+// ============================================
 // Confirmation Modal System
 // ============================================
 
