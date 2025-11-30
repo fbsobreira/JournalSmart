@@ -3,6 +3,7 @@
 /app/services/qbo.py
 QuickBooks Online API integration service
 """
+
 import re
 import logging
 import traceback
@@ -36,24 +37,29 @@ class QBOService:
     def init_app(self, app):
         """Initialize the QBO service with Flask app config"""
         self.auth_client = AuthClient(
-            client_id=app.config['QBO_CLIENT_ID'],
-            client_secret=app.config['QBO_CLIENT_SECRET'],
-            redirect_uri=app.config['QBO_REDIRECT_URI'],
-            environment=app.config['QBO_ENVIRONMENT']
+            client_id=app.config["QBO_CLIENT_ID"],
+            client_secret=app.config["QBO_CLIENT_SECRET"],
+            redirect_uri=app.config["QBO_REDIRECT_URI"],
+            environment=app.config["QBO_ENVIRONMENT"],
         )
         logger.info("QBO AuthClient initialized")
 
         # Try to load saved tokens from database
         with app.app_context():
             from app.services.token_service import token_service
+
             connection = token_service.load_tokens(self.auth_client)
             if connection:
-                logger.info(f"Loaded saved tokens for company: {connection.company_name or connection.realm_id}")
+                logger.info(
+                    f"Loaded saved tokens for company: {connection.company_name or connection.realm_id}"
+                )
 
                 # Proactively refresh tokens if they're expired or expiring soon
                 if not token_service.refresh_tokens_if_needed(self.auth_client, self):
                     # Refresh failed - tokens might be too old
-                    logger.warning("Token refresh failed at startup - user may need to re-authenticate")
+                    logger.warning(
+                        "Token refresh failed at startup - user may need to re-authenticate"
+                    )
 
     def authenticate(self):
         """Initialize QuickBooks client with OAuth tokens"""
@@ -62,13 +68,14 @@ class QBOService:
 
         # Check if tokens need refresh before authenticating
         from app.services.token_service import token_service
+
         token_service.refresh_tokens_if_needed(self.auth_client, self)
 
         self.qb = QuickBooks(
             auth_client=self.auth_client,
             refresh_token=self.auth_client.refresh_token,
             company_id=self.auth_client.realm_id,
-            minorversion=65
+            minorversion=65,
         )
         logger.debug("QuickBooks client authenticated")
 
@@ -83,12 +90,15 @@ class QBOService:
         """
         return {
             "id": account.Id,
-            "name": getattr(account, 'FullyQualifiedName', None) or account.Name,
+            "name": getattr(account, "FullyQualifiedName", None) or account.Name,
             "account_type": account.AccountType,
-            "account_subtype": getattr(account, 'AccountSubType', ''),
-            "parent_id": account.ParentRef.value if hasattr(account, 'ParentRef') and account.ParentRef else None,
-            "is_sub_account": hasattr(account, 'ParentRef') and account.ParentRef is not None,
-            "balance": getattr(account, 'CurrentBalance', 0)
+            "account_subtype": getattr(account, "AccountSubType", ""),
+            "parent_id": account.ParentRef.value
+            if hasattr(account, "ParentRef") and account.ParentRef
+            else None,
+            "is_sub_account": hasattr(account, "ParentRef")
+            and account.ParentRef is not None,
+            "balance": getattr(account, "CurrentBalance", 0),
         }
 
     def _is_cache_valid(self, key: str) -> bool:
@@ -112,7 +122,7 @@ class QBOService:
         value = str(value).strip()
 
         # QuickBooks IDs should only contain digits
-        if not re.match(r'^\d+$', value):
+        if not re.match(r"^\d+$", value):
             logger.warning(f"Invalid ID format rejected: {value}")
             return None
 
@@ -138,7 +148,7 @@ class QBOService:
             logger.error(f"Error fetching accounts: {error_str}")
 
             # Check for auth errors and clear invalid tokens
-            if '401' in error_str or 'AuthenticationFailed' in error_str:
+            if "401" in error_str or "AuthenticationFailed" in error_str:
                 logger.warning("QBO authentication failed - clearing invalid tokens")
                 self.auth_client.access_token = None
                 self.auth_client.refresh_token = None
@@ -204,8 +214,9 @@ class QBOService:
                         pattern=m.pattern,
                         from_account_id=m.from_account_id,
                         to_account_id=m.to_account_id,
-                        is_regex=m.is_regex
-                    ) for m in db_mappings
+                        is_regex=m.is_regex,
+                    )
+                    for m in db_mappings
                 ]
         except Exception as e:
             logger.warning(f"Could not load mappings from database: {str(e)}")
@@ -216,13 +227,16 @@ class QBOService:
 
         return [
             AccountMapping(
-                pattern=mapping['pattern'],
-                from_account_id=mapping['from_account_id'],
-                to_account_id=mapping['to_account_id']
-            ) for mapping in raw_mappings
+                pattern=mapping["pattern"],
+                from_account_id=mapping["from_account_id"],
+                to_account_id=mapping["to_account_id"],
+            )
+            for mapping in raw_mappings
         ]
 
-    def get_journals_by_account(self, account_id: str, start_date: str) -> List[Dict[str, Any]]:
+    def get_journals_by_account(
+        self, account_id: str, start_date: str
+    ) -> List[Dict[str, Any]]:
         """Fetch journal entries filtered by account"""
         # Sanitize account_id
         safe_account_id = self._sanitize_id(account_id)
@@ -248,13 +262,18 @@ class QBOService:
             filtered_journals = []
             for journal in journals:
                 for line in journal.Line:
-                    if (hasattr(line, 'JournalEntryLineDetail') and
-                        hasattr(line.JournalEntryLineDetail, 'AccountRef') and
-                        line.JournalEntryLineDetail.AccountRef.value == safe_account_id):
+                    if (
+                        hasattr(line, "JournalEntryLineDetail")
+                        and hasattr(line.JournalEntryLineDetail, "AccountRef")
+                        and line.JournalEntryLineDetail.AccountRef.value
+                        == safe_account_id
+                    ):
                         filtered_journals.append(journal)
                         break
 
-            logger.debug(f"Journals found with account {safe_account_id}: {len(filtered_journals)}")
+            logger.debug(
+                f"Journals found with account {safe_account_id}: {len(filtered_journals)}"
+            )
 
             # Format journals with mappings
             formatted_journals = []
@@ -262,7 +281,7 @@ class QBOService:
                 formatted_journal = self._format_journal(
                     journal=journal,
                     account_mappings=account_mappings,
-                    selected_account_id=safe_account_id
+                    selected_account_id=safe_account_id,
                 )
                 if formatted_journal:
                     formatted_journals.append(formatted_journal)
@@ -275,15 +294,16 @@ class QBOService:
             logger.debug(traceback.format_exc())
             return []
 
-    def _format_journal(self, journal, account_mappings: List[AccountMapping],
-                        selected_account_id: str) -> Optional[Dict[str, Any]]:
+    def _format_journal(
+        self, journal, account_mappings: List[AccountMapping], selected_account_id: str
+    ) -> Optional[Dict[str, Any]]:
         """Format journal entry for API response"""
         try:
             formatted_journal = {
                 "id": journal.Id,
-                "date": getattr(journal, 'TxnDate', ''),
+                "date": getattr(journal, "TxnDate", ""),
                 "lines": [],
-                "has_changes": False
+                "has_changes": False,
             }
 
             for line in journal.Line:
@@ -291,14 +311,15 @@ class QBOService:
                 if line.JournalEntryLineDetail.AccountRef.value != selected_account_id:
                     continue
 
-                description = line.Description or ''
+                description = line.Description or ""
                 account_ref = line.JournalEntryLineDetail.AccountRef
 
                 # Look for matching pattern
                 proposed_account = None
                 for mapping in account_mappings:
-                    if (mapping.from_account_id == account_ref.value and
-                            mapping.matches(description)):
+                    if mapping.from_account_id == account_ref.value and mapping.matches(
+                        description
+                    ):
                         proposed_account = mapping.to_account_id
                         formatted_journal["has_changes"] = True
                         break
@@ -309,13 +330,15 @@ class QBOService:
 
                     formatted_line = {
                         "description": description,
-                        "amount": float(line.Amount) if hasattr(line, 'Amount') else 0.0,
+                        "amount": float(line.Amount)
+                        if hasattr(line, "Amount")
+                        else 0.0,
                         "posting_type": line.JournalEntryLineDetail.PostingType,
                         "current_account": {
                             "id": account_ref.value,
-                            "name": account_ref.name
+                            "name": account_ref.name,
                         },
-                        "proposed_account": acc_proposed
+                        "proposed_account": acc_proposed,
                     }
                     formatted_journal["lines"].append(formatted_line)
 
@@ -327,7 +350,9 @@ class QBOService:
             logger.debug(traceback.format_exc())
             return None
 
-    def get_journals_for_pattern_test(self, account_id: str, start_date: str) -> List[Dict[str, Any]]:
+    def get_journals_for_pattern_test(
+        self, account_id: str, start_date: str
+    ) -> List[Dict[str, Any]]:
         """
         Fetch journal entries for pattern testing.
         Returns all lines for the specified account without mapping filtering.
@@ -345,30 +370,43 @@ class QBOService:
             query = f"select * from JournalEntry where TxnDate >= '{start_date}' MAXRESULTS 500"
             journals = JournalEntry.query(query, qb=self.qb)
 
-            logger.debug(f"Pattern test: Found {len(journals)} journals since {start_date}")
+            logger.debug(
+                f"Pattern test: Found {len(journals)} journals since {start_date}"
+            )
 
             # Filter and format journals that have lines with the selected account
             result = []
             for journal in journals:
                 journal_lines = []
                 for line in journal.Line:
-                    if (hasattr(line, 'JournalEntryLineDetail') and
-                        hasattr(line.JournalEntryLineDetail, 'AccountRef') and
-                        line.JournalEntryLineDetail.AccountRef.value == safe_account_id):
-                        journal_lines.append({
-                            'description': line.Description or '',
-                            'amount': float(line.Amount) if hasattr(line, 'Amount') else 0.0,
-                            'posting_type': line.JournalEntryLineDetail.PostingType
-                        })
+                    if (
+                        hasattr(line, "JournalEntryLineDetail")
+                        and hasattr(line.JournalEntryLineDetail, "AccountRef")
+                        and line.JournalEntryLineDetail.AccountRef.value
+                        == safe_account_id
+                    ):
+                        journal_lines.append(
+                            {
+                                "description": line.Description or "",
+                                "amount": float(line.Amount)
+                                if hasattr(line, "Amount")
+                                else 0.0,
+                                "posting_type": line.JournalEntryLineDetail.PostingType,
+                            }
+                        )
 
                 if journal_lines:
-                    result.append({
-                        'id': journal.Id,
-                        'date': getattr(journal, 'TxnDate', ''),
-                        'lines': journal_lines
-                    })
+                    result.append(
+                        {
+                            "id": journal.Id,
+                            "date": getattr(journal, "TxnDate", ""),
+                            "lines": journal_lines,
+                        }
+                    )
 
-            logger.debug(f"Pattern test: {len(result)} journals have lines with account {safe_account_id}")
+            logger.debug(
+                f"Pattern test: {len(result)} journals have lines with account {safe_account_id}"
+            )
             return result
 
         except Exception as e:
@@ -405,39 +443,47 @@ class QBOService:
 
                 # Track if we made any changes
                 journal_updated = False
-                journal_date = getattr(journal, 'TxnDate', None)
+                journal_date = getattr(journal, "TxnDate", None)
 
                 # Process each line
                 for line in journal.Line:
-                    description = line.Description or ''
+                    description = line.Description or ""
                     account_ref = line.JournalEntryLineDetail.AccountRef
-                    amount = float(line.Amount) if hasattr(line, 'Amount') else None
+                    amount = float(line.Amount) if hasattr(line, "Amount") else None
 
                     # Check if this line matches any mapping
                     for mapping in account_mappings:
-                        if (mapping.from_account_id == account_ref.value and
-                            mapping.matches(description)):
+                        if (
+                            mapping.from_account_id == account_ref.value
+                            and mapping.matches(description)
+                        ):
                             # Update the account reference
                             old_account = {
                                 "id": account_ref.value,
-                                "name": account_ref.name
+                                "name": account_ref.name,
                             }
 
                             # Get new account details
                             new_account = Account.get(mapping.to_account_id, qb=self.qb)
 
                             if not new_account:
-                                logger.warning(f"Target account not found: {mapping.to_account_id}")
+                                logger.warning(
+                                    f"Target account not found: {mapping.to_account_id}"
+                                )
                                 break
 
                             new_account_dict = {
                                 "id": new_account.Id,
-                                "name": new_account.Name
+                                "name": new_account.Name,
                             }
 
                             # Update the line's account reference
-                            line.JournalEntryLineDetail.AccountRef.value = new_account.Id
-                            line.JournalEntryLineDetail.AccountRef.name = new_account.Name
+                            line.JournalEntryLineDetail.AccountRef.value = (
+                                new_account.Id
+                            )
+                            line.JournalEntryLineDetail.AccountRef.name = (
+                                new_account.Name
+                            )
 
                             journal_updated = True
 
@@ -447,7 +493,9 @@ class QBOService:
                                 parsed_date = None
                                 if journal_date:
                                     try:
-                                        parsed_date = datetime.strptime(journal_date, '%Y-%m-%d').date()
+                                        parsed_date = datetime.strptime(
+                                            journal_date, "%Y-%m-%d"
+                                        ).date()
                                     except (ValueError, TypeError):
                                         parsed_date = None
 
@@ -457,17 +505,21 @@ class QBOService:
                                     line_description=description,
                                     from_account=old_account,
                                     to_account=new_account_dict,
-                                    amount=amount
+                                    amount=amount,
                                 )
                             except Exception as hist_error:
-                                logger.warning(f"Failed to log history: {str(hist_error)}")
+                                logger.warning(
+                                    f"Failed to log history: {str(hist_error)}"
+                                )
 
-                            results.append({
-                                "journal_id": safe_id,
-                                "line_description": description,
-                                "old_account": old_account,
-                                "new_account": new_account_dict
-                            })
+                            results.append(
+                                {
+                                    "journal_id": safe_id,
+                                    "line_description": description,
+                                    "old_account": old_account,
+                                    "new_account": new_account_dict,
+                                }
+                            )
                             break
 
                 # Only save if we made changes

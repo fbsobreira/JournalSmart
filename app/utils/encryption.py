@@ -3,6 +3,7 @@
 /app/utils/encryption.py
 Token encryption utilities for secure storage at rest
 """
+
 import logging
 from typing import Optional
 from cryptography.fernet import Fernet, InvalidToken
@@ -18,7 +19,7 @@ def _get_cipher() -> Fernet:
     """Get or initialize the Fernet cipher"""
     global _cipher
     if _cipher is None:
-        key = current_app.config.get('ENCRYPTION_KEY')
+        key = current_app.config.get("ENCRYPTION_KEY")
         if not key:
             raise ValueError("ENCRYPTION_KEY not configured")
         # Ensure key is bytes
@@ -83,7 +84,7 @@ def is_encrypted(text: str) -> bool:
     """
     if not text:
         return False
-    return text.startswith('gAAAAA')
+    return text.startswith("gAAAAA")
 
 
 def reset_cipher():

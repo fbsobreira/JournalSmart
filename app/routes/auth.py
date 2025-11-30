@@ -3,16 +3,25 @@
 /app/routes/auth.py
 Authentication routes (App password + QuickBooks OAuth)
 """
+
 import logging
 from datetime import timedelta
-from flask import Blueprint, redirect, url_for, session, request, render_template, current_app
+from flask import (
+    Blueprint,
+    redirect,
+    url_for,
+    session,
+    request,
+    render_template,
+    current_app,
+)
 from app.services.qbo import qbo_service
 from app.services.token_service import token_service
 from app.utils.decorators import require_app_password
 from intuitlib.enums import Scopes
 from intuitlib.exceptions import AuthClientError
 
-bp = Blueprint('auth', __name__)
+bp = Blueprint("auth", __name__)
 logger = logging.getLogger(__name__)
 
 
@@ -20,27 +29,28 @@ logger = logging.getLogger(__name__)
 # App Password Authentication
 # =============================================================================
 
-@bp.route('/login', methods=['GET', 'POST'])
+
+@bp.route("/login", methods=["GET", "POST"])
 def login():
     """App password login page"""
-    app_password = current_app.config.get('APP_PASSWORD', '')
+    app_password = current_app.config.get("APP_PASSWORD", "")
 
     # If no password configured, skip login
     if not app_password:
-        return redirect(url_for('journal.list_journals'))
+        return redirect(url_for("journal.list_journals"))
 
     # Already authenticated
-    if session.get('app_authenticated'):
-        return redirect(url_for('journal.list_journals'))
+    if session.get("app_authenticated"):
+        return redirect(url_for("journal.list_journals"))
 
     error = None
 
-    if request.method == 'POST':
-        password = request.form.get('password', '')
-        remember = request.form.get('remember') == 'on'
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        remember = request.form.get("remember") == "on"
 
         if password == app_password:
-            session['app_authenticated'] = True
+            session["app_authenticated"] = True
             session.permanent = remember
 
             if remember:
@@ -48,36 +58,37 @@ def login():
                 current_app.permanent_session_lifetime = timedelta(days=30)
 
             logger.info("App password authentication successful")
-            return redirect(url_for('journal.list_journals'))
+            return redirect(url_for("journal.list_journals"))
         else:
             logger.warning("Failed app password attempt")
             error = "Invalid password. Please try again."
 
-    return render_template('login.html', error=error)
+    return render_template("login.html", error=error)
 
 
-@bp.route('/logout')
+@bp.route("/logout")
 def logout():
     """Logout - clear app session but preserve QBO connection"""
     # Preserve QBO realm_id so connection stays active
-    qbo_realm_id = session.get('qbo_realm_id')
+    qbo_realm_id = session.get("qbo_realm_id")
 
     # Clear session
     session.clear()
 
     # Restore QBO realm_id if it was set
     if qbo_realm_id:
-        session['qbo_realm_id'] = qbo_realm_id
+        session["qbo_realm_id"] = qbo_realm_id
 
     logger.info("User logged out (QBO connection preserved)")
-    return redirect(url_for('auth.login'))
+    return redirect(url_for("auth.login"))
 
 
 # =============================================================================
 # QuickBooks OAuth Authentication
 # =============================================================================
 
-@bp.route('/auth')
+
+@bp.route("/auth")
 def qbo_auth():
     """Initiate QuickBooks OAuth flow"""
     try:
@@ -91,36 +102,42 @@ def qbo_auth():
 
     except Exception as e:
         logger.error(f"Error initiating QBO OAuth: {str(e)}")
-        return render_template('error.html',
-                               title="Authentication Error",
-                               message="Failed to initiate QuickBooks authentication. Please try again.",
-                               details=str(e) if current_app.debug else None)
+        return render_template(
+            "error.html",
+            title="Authentication Error",
+            message="Failed to initiate QuickBooks authentication. Please try again.",
+            details=str(e) if current_app.debug else None,
+        )
 
 
-@bp.route('/callback')
+@bp.route("/callback")
 def callback():
     """Handle QuickBooks OAuth callback"""
     try:
         # Check for error response from QuickBooks
-        error = request.args.get('error')
+        error = request.args.get("error")
         if error:
-            error_description = request.args.get('error_description', 'Unknown error')
+            error_description = request.args.get("error_description", "Unknown error")
             logger.error(f"QBO OAuth error: {error} - {error_description}")
-            return render_template('error.html',
-                                   title="Authentication Failed",
-                                   message=f"QuickBooks returned an error: {error_description}",
-                                   show_retry=True)
+            return render_template(
+                "error.html",
+                title="Authentication Failed",
+                message=f"QuickBooks returned an error: {error_description}",
+                show_retry=True,
+            )
 
         # Get authorization code from callback
-        auth_code = request.args.get('code')
-        realm_id = request.args.get('realmId')
+        auth_code = request.args.get("code")
+        realm_id = request.args.get("realmId")
 
         if not auth_code or not realm_id:
             logger.error("Missing auth_code or realm_id in callback")
-            return render_template('error.html',
-                                   title="Authentication Failed",
-                                   message="Missing required parameters from QuickBooks.",
-                                   show_retry=True)
+            return render_template(
+                "error.html",
+                title="Authentication Failed",
+                message="Missing required parameters from QuickBooks.",
+                show_retry=True,
+            )
 
         logger.info(f"OAuth callback received for realm: {realm_id}")
 
@@ -132,40 +149,44 @@ def callback():
         token_service.save_tokens(qbo_service.auth_client)
 
         # Store realm_id in session for reference
-        session['qbo_realm_id'] = realm_id
+        session["qbo_realm_id"] = realm_id
 
         logger.info("QBO OAuth successful, tokens saved to database")
-        return redirect(url_for('journal.list_journals'))
+        return redirect(url_for("journal.list_journals"))
 
     except AuthClientError as e:
         logger.error(f"QBO AuthClientError: {str(e)}")
-        return render_template('error.html',
-                               title="Authentication Failed",
-                               message="Failed to authenticate with QuickBooks. The authorization may have expired.",
-                               details=str(e) if current_app.debug else None,
-                               show_retry=True)
+        return render_template(
+            "error.html",
+            title="Authentication Failed",
+            message="Failed to authenticate with QuickBooks. The authorization may have expired.",
+            details=str(e) if current_app.debug else None,
+            show_retry=True,
+        )
 
     except Exception as e:
         logger.error(f"Unexpected error in OAuth callback: {str(e)}")
-        return render_template('error.html',
-                               title="Authentication Error",
-                               message="An unexpected error occurred during authentication.",
-                               details=str(e) if current_app.debug else None,
-                               show_retry=True)
+        return render_template(
+            "error.html",
+            title="Authentication Error",
+            message="An unexpected error occurred during authentication.",
+            details=str(e) if current_app.debug else None,
+            show_retry=True,
+        )
 
 
-@bp.route('/disconnect')
+@bp.route("/disconnect")
 @require_app_password
 def disconnect():
     """Disconnect QuickBooks (clear QBO tokens, keep app password session)"""
     try:
         # Get realm_id before clearing
-        realm_id = session.get('qbo_realm_id') or (
+        realm_id = session.get("qbo_realm_id") or (
             qbo_service.auth_client.realm_id if qbo_service.auth_client else None
         )
 
         # Clear QBO-related session data
-        session.pop('qbo_realm_id', None)
+        session.pop("qbo_realm_id", None)
 
         # Delete connection from database
         if realm_id:
@@ -182,4 +203,4 @@ def disconnect():
     except Exception as e:
         logger.error(f"Error disconnecting QBO: {str(e)}")
 
-    return redirect(url_for('auth.qbo_auth'))
+    return redirect(url_for("auth.qbo_auth"))

@@ -3,6 +3,7 @@
 /app/models/account_mapping.py
 Account mapping model for description-to-account rules
 """
+
 import re
 import logging
 

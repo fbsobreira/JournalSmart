@@ -3,6 +3,7 @@
 /app/__init__.py
 Application factory and initialization
 """
+
 import logging
 import sys
 from flask import Flask, render_template
@@ -12,11 +13,13 @@ from app.extensions import db, csrf
 
 def configure_logging(app):
     """Configure application logging"""
-    log_level = getattr(logging, app.config.get('LOG_LEVEL', 'INFO').upper(), logging.INFO)
+    log_level = getattr(
+        logging, app.config.get("LOG_LEVEL", "INFO").upper(), logging.INFO
+    )
 
     # Create formatter
     formatter = logging.Formatter(
-        '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+        "[%(asctime)s] %(levelname)s in %(module)s: %(message)s"
     )
 
     # Configure root logger
@@ -37,8 +40,8 @@ def configure_logging(app):
     app.logger.setLevel(log_level)
 
     # Suppress noisy loggers
-    logging.getLogger('werkzeug').setLevel(logging.WARNING)
-    logging.getLogger('urllib3').setLevel(logging.WARNING)
+    logging.getLogger("werkzeug").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
 def run_migrations(app):
@@ -55,11 +58,11 @@ def run_migrations(app):
         except Exception:
             app.logger.info("Adding sort_order column to account_mappings table...")
             db.session.execute(
-                text("ALTER TABLE account_mappings ADD COLUMN sort_order INTEGER DEFAULT 0 NOT NULL")
+                text(
+                    "ALTER TABLE account_mappings ADD COLUMN sort_order INTEGER DEFAULT 0 NOT NULL"
+                )
             )
-            db.session.execute(
-                text("UPDATE account_mappings SET sort_order = id")
-            )
+            db.session.execute(text("UPDATE account_mappings SET sort_order = id"))
             db.session.commit()
             app.logger.info("Migration complete: sort_order column added")
 
@@ -72,7 +75,9 @@ def run_migrations(app):
         except Exception:
             app.logger.info("Adding is_regex column to account_mappings table...")
             db.session.execute(
-                text("ALTER TABLE account_mappings ADD COLUMN is_regex BOOLEAN DEFAULT 0 NOT NULL")
+                text(
+                    "ALTER TABLE account_mappings ADD COLUMN is_regex BOOLEAN DEFAULT 0 NOT NULL"
+                )
             )
             db.session.commit()
             app.logger.info("Migration complete: is_regex column added")
@@ -101,45 +106,49 @@ def register_security_headers(app):
     def generate_nonce():
         """Generate a unique nonce for each request (for CSP)"""
         # Only generate for HTML responses (not API calls)
-        if not request.path.startswith('/api/'):
+        if not request.path.startswith("/api/"):
             g.csp_nonce = secrets.token_urlsafe(16)
 
     @app.after_request
     def add_security_headers(response):
         # Prevent MIME type sniffing
-        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers["X-Content-Type-Options"] = "nosniff"
         # Prevent clickjacking
-        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
         # XSS protection (legacy browsers)
-        response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers["X-XSS-Protection"] = "1; mode=block"
         # Referrer policy
-        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         # Permissions policy (restrict browser features)
-        response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), microphone=(), camera=()"
+        )
 
         # Content Security Policy (XSS protection)
         # Only add for HTML responses
-        if response.content_type and 'text/html' in response.content_type:
-            nonce = getattr(g, 'csp_nonce', '')
-            csp = "; ".join([
-                "default-src 'self'",
-                f"script-src 'self' 'nonce-{nonce}' https://cdn.tailwindcss.com",
-                f"style-src 'self' 'unsafe-inline'",  # Tailwind needs inline styles
-                "img-src 'self' data:",
-                "font-src 'self'",
-                "connect-src 'self'",
-                "frame-ancestors 'self'",
-                "form-action 'self'",
-                "base-uri 'self'"
-            ])
-            response.headers['Content-Security-Policy'] = csp
+        if response.content_type and "text/html" in response.content_type:
+            nonce = getattr(g, "csp_nonce", "")
+            csp = "; ".join(
+                [
+                    "default-src 'self'",
+                    f"script-src 'self' 'nonce-{nonce}' https://cdn.tailwindcss.com",
+                    "style-src 'self' 'unsafe-inline'",  # Tailwind needs inline styles
+                    "img-src 'self' data:",
+                    "font-src 'self'",
+                    "connect-src 'self'",
+                    "frame-ancestors 'self'",
+                    "form-action 'self'",
+                    "base-uri 'self'",
+                ]
+            )
+            response.headers["Content-Security-Policy"] = csp
 
         return response
 
     @app.context_processor
     def inject_csp_nonce():
         """Make nonce available in all templates"""
-        return {'csp_nonce': getattr(g, 'csp_nonce', '')}
+        return {"csp_nonce": getattr(g, "csp_nonce", "")}
 
 
 def register_error_handlers(app):
@@ -148,23 +157,29 @@ def register_error_handlers(app):
     @app.errorhandler(404)
     def not_found_error(error):  # noqa: F841 - registered via decorator
         _ = error  # Acknowledge the error parameter
-        return render_template('error.html',
-                               title="Page Not Found",
-                               message="The page you're looking for doesn't exist."), 404
+        return render_template(
+            "error.html",
+            title="Page Not Found",
+            message="The page you're looking for doesn't exist.",
+        ), 404
 
     @app.errorhandler(500)
     def internal_error(error):  # noqa: F841 - registered via decorator
-        return render_template('error.html',
-                               title="Server Error",
-                               message="An unexpected error occurred. Please try again later.",
-                               details=str(error) if app.debug else None), 500
+        return render_template(
+            "error.html",
+            title="Server Error",
+            message="An unexpected error occurred. Please try again later.",
+            details=str(error) if app.debug else None,
+        ), 500
 
     @app.errorhandler(403)
     def forbidden_error(error):  # noqa: F841 - registered via decorator
         _ = error  # Acknowledge the error parameter
-        return render_template('error.html',
-                               title="Access Denied",
-                               message="You don't have permission to access this resource."), 403
+        return render_template(
+            "error.html",
+            title="Access Denied",
+            message="You don't have permission to access this resource.",
+        ), 403
 
 
 def create_app(config_class=Config):
@@ -183,25 +198,31 @@ def create_app(config_class=Config):
     with app.app_context():
         # Import models to ensure they're registered
         from app.models import QBOConnection, DBAccountMapping, UpdateHistory  # noqa: F401
+
         db.create_all()
-        app.logger.info(f"Database initialized at {app.config.get('SQLALCHEMY_DATABASE_URI')}")
+        app.logger.info(
+            f"Database initialized at {app.config.get('SQLALCHEMY_DATABASE_URI')}"
+        )
 
     # Run database migrations
     run_migrations(app)
 
     # Initialize QBO service
     from app.services.qbo import init_qbo
+
     init_qbo(app)
 
     # Migrate any plain text tokens to encrypted (safe to run multiple times)
     with app.app_context():
         from app.services.token_service import token_service
+
         migrated = token_service.migrate_to_encrypted_tokens()
         if migrated > 0:
             app.logger.info(f"Migrated {migrated} connection(s) to encrypted tokens")
 
     # Register blueprints
     from app.routes import journal, mapping, auth, api, history
+
     app.register_blueprint(journal.bp)
     app.register_blueprint(mapping.bp)
     app.register_blueprint(auth.bp)

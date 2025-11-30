@@ -3,6 +3,7 @@
 /app/services/token_service.py
 Token persistence and management service
 """
+
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -36,8 +37,10 @@ class TokenService:
 
             # Calculate token expiration (access tokens typically expire in 1 hour)
             # IntuitLib provides expires_in as seconds
-            expires_in = getattr(auth_client, 'expires_in', 3600)
-            token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+            expires_in = getattr(auth_client, "expires_in", 3600)
+            token_expires_at = datetime.now(timezone.utc) + timedelta(
+                seconds=expires_in
+            )
 
             # Check if connection already exists
             connection = QBOConnection.query.filter_by(realm_id=realm_id).first()
@@ -58,7 +61,7 @@ class TokenService:
                     company_name=company_name,
                     access_token=auth_client.access_token,
                     refresh_token=auth_client.refresh_token,
-                    token_expires_at=token_expires_at
+                    token_expires_at=token_expires_at,
                 )
                 db.session.add(connection)
                 logger.info(f"Created new connection for realm {realm_id}")
@@ -154,11 +157,12 @@ class TokenService:
             # Re-initialize the QBO client with new tokens (avoid recursive authenticate call)
             if qbo_service.qb:
                 from quickbooks import QuickBooks
+
                 qbo_service.qb = QuickBooks(
                     auth_client=auth_client,
                     refresh_token=auth_client.refresh_token,
                     company_id=auth_client.realm_id,
-                    minorversion=65
+                    minorversion=65,
                 )
 
             logger.info("Tokens refreshed successfully")
@@ -170,8 +174,14 @@ class TokenService:
 
             # If refresh fails due to invalid/expired refresh token, clear tokens
             # so user gets redirected to re-authenticate
-            if '401' in error_str or 'invalid_grant' in error_str.lower() or 'expired' in error_str.lower():
-                logger.warning("Refresh token invalid/expired - clearing tokens for re-auth")
+            if (
+                "401" in error_str
+                or "invalid_grant" in error_str.lower()
+                or "expired" in error_str.lower()
+            ):
+                logger.warning(
+                    "Refresh token invalid/expired - clearing tokens for re-auth"
+                )
                 auth_client.access_token = None
                 auth_client.refresh_token = None
 
@@ -211,9 +221,7 @@ class TokenService:
             QBOConnection object or None
         """
         try:
-            return QBOConnection.query.order_by(
-                QBOConnection.updated_at.desc()
-            ).first()
+            return QBOConnection.query.order_by(QBOConnection.updated_at.desc()).first()
         except Exception as e:
             logger.error(f"Error getting connection: {str(e)}")
             return None

@@ -3,6 +3,7 @@
 /app/models/db_account_mapping.py
 Database model for account mapping rules
 """
+
 import re
 import logging
 from datetime import datetime
@@ -13,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 class DBAccountMapping(db.Model):
     """Account mapping rule stored in database"""
-    __tablename__ = 'account_mappings'
+
+    __tablename__ = "account_mappings"
 
     id = db.Column(db.Integer, primary_key=True)
     pattern = db.Column(db.String(200), nullable=False)
@@ -26,10 +28,12 @@ class DBAccountMapping(db.Model):
     category = db.Column(db.String(100), nullable=True)
     sort_order = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     def __repr__(self):
-        return f'<DBAccountMapping {self.pattern}: {self.from_account_id} -> {self.to_account_id}>'
+        return f"<DBAccountMapping {self.pattern}: {self.from_account_id} -> {self.to_account_id}>"
 
     def matches(self, description: str) -> bool:
         """Check if description matches the pattern (case-insensitive)"""
@@ -76,27 +80,29 @@ class DBAccountMapping(db.Model):
     def to_dict(self):
         """Convert to dictionary for API responses"""
         return {
-            'id': self.id,
-            'pattern': self.pattern,
-            'from_account_id': self.from_account_id,
-            'from_account_name': self.from_account_name,
-            'to_account_id': self.to_account_id,
-            'to_account_name': self.to_account_name,
-            'is_active': self.is_active,
-            'is_regex': self.is_regex,
-            'category': self.category,
-            'sort_order': self.sort_order,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            "id": self.id,
+            "pattern": self.pattern,
+            "from_account_id": self.from_account_id,
+            "from_account_name": self.from_account_name,
+            "to_account_id": self.to_account_id,
+            "to_account_name": self.to_account_name,
+            "is_active": self.is_active,
+            "is_regex": self.is_regex,
+            "category": self.category,
+            "sort_order": self.sort_order,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
     @classmethod
     def get_categories(cls):
         """Get all unique categories"""
-        result = cls.query.with_entities(cls.category).distinct().filter(
-            cls.category.isnot(None),
-            cls.category != ''
-        ).all()
+        result = (
+            cls.query.with_entities(cls.category)
+            .distinct()
+            .filter(cls.category.isnot(None), cls.category != "")
+            .all()
+        )
         return sorted([r[0] for r in result])
 
     @classmethod

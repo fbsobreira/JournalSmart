@@ -3,24 +3,25 @@
 /app/routes/journal.py
 Journal entry routes and views
 """
+
 import logging
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 from app.services.qbo import qbo_service
 from app.utils.decorators import require_qbo_auth
 from datetime import datetime, timedelta
 
-bp = Blueprint('journal', __name__)
+bp = Blueprint("journal", __name__)
 logger = logging.getLogger(__name__)
 
 
-@bp.route('/')
+@bp.route("/")
 @require_qbo_auth
 def index():
     """Redirect to journal list"""
-    return redirect(url_for('journal.list_journals'))
+    return redirect(url_for("journal.list_journals"))
 
 
-@bp.route('/journals')
+@bp.route("/journals")
 @require_qbo_auth
 def list_journals():
     """List journal entries with proposed changes"""
@@ -28,38 +29,46 @@ def list_journals():
     today = datetime.today()
     first_day_last_month = today.replace(day=1) - timedelta(days=1)
     first_day_last_month = first_day_last_month.replace(day=1)
-    default_start_date = first_day_last_month.strftime('%Y-%m-%d')
+    default_start_date = first_day_last_month.strftime("%Y-%m-%d")
 
     try:
         accounts = qbo_service.get_accounts()
-        account_id = request.args.get('account_id')
-        start_date = request.args.get('start_date', default_start_date)
+        account_id = request.args.get("account_id")
+        start_date = request.args.get("start_date", default_start_date)
 
-        logger.debug(f"Listing journals - Account ID: {account_id}, Start Date: {start_date}")
+        logger.debug(
+            f"Listing journals - Account ID: {account_id}, Start Date: {start_date}"
+        )
 
         if not account_id:
-            return render_template('journal_list.html',
-                                   journals=[],
-                                   accounts=accounts,
-                                   start_date=start_date)
+            return render_template(
+                "journal_list.html",
+                journals=[],
+                accounts=accounts,
+                start_date=start_date,
+            )
 
         journals = qbo_service.get_journals_by_account(account_id, start_date)
 
-        return render_template('journal_list.html',
-                               journals=journals,
-                               accounts=accounts,
-                               start_date=start_date)
+        return render_template(
+            "journal_list.html",
+            journals=journals,
+            accounts=accounts,
+            start_date=start_date,
+        )
 
     except Exception as e:
         logger.error(f"Error listing journals: {str(e)}")
-        return render_template('journal_list.html',
-                               journals=[],
-                               accounts=[],
-                               error=str(e),
-                               start_date=default_start_date)
+        return render_template(
+            "journal_list.html",
+            journals=[],
+            accounts=[],
+            error=str(e),
+            start_date=default_start_date,
+        )
 
 
-@bp.route('/journals/update', methods=['POST'])
+@bp.route("/journals/update", methods=["POST"])
 @require_qbo_auth
 def update_journals():
     """Update journal entries with new account mappings"""
@@ -70,7 +79,7 @@ def update_journals():
             logger.warning("Update journals called with no JSON data")
             return jsonify({"error": "No data provided"}), 400
 
-        journal_ids = data.get('journals', [])
+        journal_ids = data.get("journals", [])
 
         if not journal_ids:
             logger.warning("Update journals called with empty journal list")
@@ -94,10 +103,7 @@ def update_journals():
 
         logger.info(f"Successfully updated {len(results)} journal entries")
 
-        return jsonify({
-            "success": True,
-            "updated": results
-        })
+        return jsonify({"success": True, "updated": results})
 
     except Exception as e:
         logger.error(f"Error updating journals: {str(e)}")
