@@ -94,6 +94,15 @@ def run_migrations(app):
 
 def register_security_headers(app):
     """Register security headers on all responses"""
+    import secrets
+    from flask import g, request
+
+    @app.before_request
+    def generate_nonce():
+        """Generate a unique nonce for each request (for CSP)"""
+        # Only generate for HTML responses (not API calls)
+        if not request.path.startswith('/api/'):
+            g.csp_nonce = secrets.token_urlsafe(16)
 
     @app.after_request
     def add_security_headers(response):
@@ -107,7 +116,30 @@ def register_security_headers(app):
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         # Permissions policy (restrict browser features)
         response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+
+        # Content Security Policy (XSS protection)
+        # Only add for HTML responses
+        if response.content_type and 'text/html' in response.content_type:
+            nonce = getattr(g, 'csp_nonce', '')
+            csp = "; ".join([
+                "default-src 'self'",
+                f"script-src 'self' 'nonce-{nonce}' https://cdn.tailwindcss.com",
+                f"style-src 'self' 'unsafe-inline'",  # Tailwind needs inline styles
+                "img-src 'self' data:",
+                "font-src 'self'",
+                "connect-src 'self'",
+                "frame-ancestors 'self'",
+                "form-action 'self'",
+                "base-uri 'self'"
+            ])
+            response.headers['Content-Security-Policy'] = csp
+
         return response
+
+    @app.context_processor
+    def inject_csp_nonce():
+        """Make nonce available in all templates"""
+        return {'csp_nonce': getattr(g, 'csp_nonce', '')}
 
 
 def register_error_handlers(app):

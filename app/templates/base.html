@@ -6,8 +6,8 @@
     <meta name="description" content="JournalSmart — Automated Journal Entry Reclassification for QuickBooks Online. Create pattern-based rules to automatically find and fix journal entries. Set it once, run it forever.">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}JournalSmart for QBO — Automated Journal Entry Reclassification{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
+    <script src="https://cdn.tailwindcss.com" nonce="{{ csp_nonce }}"></script>
+    <script nonce="{{ csp_nonce }}">
         // Apply dark mode before page renders to prevent flash
         if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.remove('light');
@@ -316,8 +316,8 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script>
+    <script src="{{ url_for('static', filename='js/main.js') }}" nonce="{{ csp_nonce }}"></script>
+    <script nonce="{{ csp_nonce }}">
         // Dark mode toggle
         function toggleDarkMode() {
             const html = document.documentElement;

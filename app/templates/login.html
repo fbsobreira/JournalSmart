@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="JournalSmart — Automated Journal Entry Reclassification for QuickBooks Online. Set it once, run it forever.">
     <title>Login - JournalSmart for QBO</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
+    <script src="https://cdn.tailwindcss.com" nonce="{{ csp_nonce }}"></script>
+    <script nonce="{{ csp_nonce }}">
         tailwind.config = {
             theme: {
                 extend: {
@@ -110,7 +110,7 @@
         </p>
     </div>
 
-    <script>
+    <script nonce="{{ csp_nonce }}">
         function togglePassword() {
             const input = document.getElementById('password');
             const eyeOpen = document.getElementById('eye-open');
