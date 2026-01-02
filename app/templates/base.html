@@ -6,6 +6,7 @@
     <meta name="description" content="JournalSmart — Automated Journal Entry Reclassification for QuickBooks Online. Create pattern-based rules to automatically find and fix journal entries. Set it once, run it forever.">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}JournalSmart for QBO — Automated Journal Entry Reclassification{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
     <script src="https://cdn.tailwindcss.com" nonce="{{ csp_nonce }}"></script>
     <script nonce="{{ csp_nonce }}">
         // Apply dark mode before page renders to prevent flash
@@ -86,10 +87,46 @@
 
                 <!-- Right side buttons -->
                 <div class="hidden sm:flex sm:items-center sm:gap-2">
+                    <!-- Company Switcher -->
+                    <div class="relative" id="companySwitcherContainer">
+                        <button
+                            type="button"
+                            id="companySwitcherBtn"
+                            class="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-200 dark:border-gray-600"
+                            title="Switch company"
+                        >
+                            <svg class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+                            </svg>
+                            <span id="currentCompanyName" class="max-w-[150px] truncate">Loading...</span>
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                            </svg>
+                        </button>
+                        <!-- Company Dropdown -->
+                        <div id="companySwitcherDropdown" class="hidden absolute right-0 mt-2 w-72 rounded-lg bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black/5 dark:ring-white/10 py-1 z-50">
+                            <div class="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+                                <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Connected Companies</p>
+                            </div>
+                            <div id="companyList" class="max-h-64 overflow-y-auto">
+                                <!-- Companies will be loaded here -->
+                            </div>
+                            <div class="border-t border-gray-100 dark:border-gray-700">
+                                <a href="{{ url_for('auth.qbo_auth') }}"
+                                   class="flex items-center px-4 py-2 text-sm text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                    <svg class="mr-3 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                    </svg>
+                                    Connect Another Company
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Keyboard shortcuts button -->
                     <button
                         type="button"
-                        onclick="showKeyboardShortcuts()"
+                        id="keyboardShortcutsBtn"
                         class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                         title="Keyboard shortcuts (?)"
                     >
@@ -101,7 +138,6 @@
                     <!-- Dark mode toggle -->
                     <button
                         type="button"
-                        onclick="toggleDarkMode()"
                         id="darkModeToggle"
                         class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                         title="Toggle dark mode (D)"
@@ -120,7 +156,6 @@
                     <div class="relative" id="userMenuContainer">
                         <button
                             type="button"
-                            onclick="toggleUserMenu()"
                             id="userMenuBtn"
                             class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                             title="User menu"
@@ -132,8 +167,9 @@
                         <!-- Dropdown menu -->
                         <div id="userMenuDropdown" class="hidden absolute right-0 mt-2 w-48 rounded-lg bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black/5 dark:ring-white/10 py-1 z-50">
                             <a href="{{ url_for('auth.disconnect') }}"
+                               id="disconnectQboLink"
                                class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                               onclick="return confirm('Disconnect from QuickBooks? You will need to re-authenticate.')">
+                               data-confirm="Disconnect from QuickBooks? You will need to re-authenticate.">
                                 <svg class="mr-3 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                                 </svg>
@@ -157,7 +193,7 @@
                     <!-- Mobile dark mode toggle -->
                     <button
                         type="button"
-                        onclick="toggleDarkMode()"
+                        id="mobileDarkModeToggle"
                         class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                         title="Toggle dark mode"
                     >
@@ -220,8 +256,9 @@
                 <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                 <!-- Mobile disconnect/logout -->
                 <a href="{{ url_for('auth.disconnect') }}"
+                   id="mobileDisconnectQboLink"
                    class="text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white border-l-4 border-transparent flex items-center px-4 py-3 text-base font-medium transition-colors"
-                   onclick="return confirm('Disconnect from QuickBooks? You will need to re-authenticate.')">
+                   data-confirm="Disconnect from QuickBooks? You will need to re-authenticate.">
                     <svg class="mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                     </svg>
@@ -254,14 +291,14 @@
 
     <!-- Keyboard Shortcuts Modal -->
     <div id="keyboardShortcutsModal" class="fixed inset-0 z-50 hidden" aria-labelledby="shortcuts-title" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="hideKeyboardShortcuts()"></div>
+        <div id="keyboardShortcutsBackdrop" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity"></div>
         <div class="fixed inset-0 z-10 overflow-y-auto">
             <div class="flex min-h-full items-center justify-center p-4">
                 <div class="relative transform rounded-2xl bg-white dark:bg-gray-800 text-left shadow-2xl transition-all sm:w-full sm:max-w-md">
                     <div class="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
                         <div class="flex items-center justify-between">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="shortcuts-title">Keyboard Shortcuts</h3>
-                            <button onclick="hideKeyboardShortcuts()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <button id="keyboardShortcutsCloseBtn" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -347,12 +384,189 @@
             dropdown.classList.toggle('hidden');
         }
 
-        // Close user menu when clicking outside
+        // Company switcher dropdown
+        function toggleCompanySwitcher() {
+            const dropdown = document.getElementById('companySwitcherDropdown');
+            dropdown.classList.toggle('hidden');
+            if (!dropdown.classList.contains('hidden')) {
+                loadCompanies();
+            }
+        }
+
+        // Load companies list
+        async function loadCompanies() {
+            try {
+                const response = await fetch('/api/companies');
+                const data = await response.json();
+
+                if (data.companies) {
+                    const companyList = document.getElementById('companyList');
+                    companyList.innerHTML = data.companies.map(company => `
+                        <button
+                            data-realm-id="${company.realm_id}"
+                            class="company-switch-btn w-full flex items-center justify-between px-4 py-2 text-sm ${company.is_current ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'} transition-colors"
+                        >
+                            <div class="flex items-center gap-2 min-w-0">
+                                <svg class="h-4 w-4 flex-shrink-0 ${company.is_current ? 'text-green-500' : 'text-gray-400'}" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+                                </svg>
+                                <span class="truncate">${company.company_name || company.realm_id}</span>
+                            </div>
+                            ${company.is_current ? '<svg class="h-4 w-4 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>' : ''}
+                        </button>
+                    `).join('');
+
+                    // Attach click handlers to company buttons
+                    document.querySelectorAll('.company-switch-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const realmId = this.getAttribute('data-realm-id');
+                            switchCompany(realmId);
+                        });
+                    });
+
+                    // Update current company name in header
+                    const currentCompany = data.companies.find(c => c.is_current);
+                    if (currentCompany) {
+                        const displayName = currentCompany.company_name || currentCompany.realm_id;
+                        document.getElementById('currentCompanyName').textContent = displayName;
+
+                        // Auto-refresh company name if missing
+                        if (!currentCompany.company_name) {
+                            refreshCompanyName();
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading companies:', error);
+            }
+        }
+
+        // Refresh company name from QuickBooks
+        async function refreshCompanyName() {
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                const response = await fetch('/api/companies/refresh-name', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success && data.company_name) {
+                    document.getElementById('currentCompanyName').textContent = data.company_name;
+                    // Reload the company list to update dropdown
+                    loadCompanies();
+                }
+            } catch (error) {
+                console.error('Error refreshing company name:', error);
+            }
+        }
+
+        // Switch to a different company
+        async function switchCompany(realmId) {
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                const response = await fetch('/api/companies/switch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ realm_id: realmId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Reload the page to reflect the new company context
+                    window.location.reload();
+                } else {
+                    alert(data.error || 'Failed to switch company');
+                }
+            } catch (error) {
+                console.error('Error switching company:', error);
+                alert('Error switching company');
+            }
+        }
+
+        // Initialize event listeners on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load companies
+            loadCompanies();
+
+            // Company switcher button
+            const companySwitcherBtn = document.getElementById('companySwitcherBtn');
+            if (companySwitcherBtn) {
+                companySwitcherBtn.addEventListener('click', toggleCompanySwitcher);
+            }
+
+            // Keyboard shortcuts button
+            const keyboardShortcutsBtn = document.getElementById('keyboardShortcutsBtn');
+            if (keyboardShortcutsBtn) {
+                keyboardShortcutsBtn.addEventListener('click', showKeyboardShortcuts);
+            }
+
+            // Dark mode toggles
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            if (darkModeToggle) {
+                darkModeToggle.addEventListener('click', toggleDarkMode);
+            }
+            const mobileDarkModeToggle = document.getElementById('mobileDarkModeToggle');
+            if (mobileDarkModeToggle) {
+                mobileDarkModeToggle.addEventListener('click', toggleDarkMode);
+            }
+
+            // User menu button
+            const userMenuBtn = document.getElementById('userMenuBtn');
+            if (userMenuBtn) {
+                userMenuBtn.addEventListener('click', toggleUserMenu);
+            }
+
+            // Disconnect QBO links with confirmation
+            const disconnectQboLink = document.getElementById('disconnectQboLink');
+            if (disconnectQboLink) {
+                disconnectQboLink.addEventListener('click', function(e) {
+                    const msg = this.getAttribute('data-confirm');
+                    if (msg && !confirm(msg)) {
+                        e.preventDefault();
+                    }
+                });
+            }
+            const mobileDisconnectQboLink = document.getElementById('mobileDisconnectQboLink');
+            if (mobileDisconnectQboLink) {
+                mobileDisconnectQboLink.addEventListener('click', function(e) {
+                    const msg = this.getAttribute('data-confirm');
+                    if (msg && !confirm(msg)) {
+                        e.preventDefault();
+                    }
+                });
+            }
+
+            // Keyboard shortcuts modal
+            const keyboardShortcutsBackdrop = document.getElementById('keyboardShortcutsBackdrop');
+            if (keyboardShortcutsBackdrop) {
+                keyboardShortcutsBackdrop.addEventListener('click', hideKeyboardShortcuts);
+            }
+            const keyboardShortcutsCloseBtn = document.getElementById('keyboardShortcutsCloseBtn');
+            if (keyboardShortcutsCloseBtn) {
+                keyboardShortcutsCloseBtn.addEventListener('click', hideKeyboardShortcuts);
+            }
+        });
+
+        // Close user menu and company switcher when clicking outside
         document.addEventListener('click', function(e) {
-            const container = document.getElementById('userMenuContainer');
-            const dropdown = document.getElementById('userMenuDropdown');
-            if (container && dropdown && !container.contains(e.target)) {
-                dropdown.classList.add('hidden');
+            const userContainer = document.getElementById('userMenuContainer');
+            const userDropdown = document.getElementById('userMenuDropdown');
+            if (userContainer && userDropdown && !userContainer.contains(e.target)) {
+                userDropdown.classList.add('hidden');
+            }
+
+            const companyContainer = document.getElementById('companySwitcherContainer');
+            const companyDropdown = document.getElementById('companySwitcherDropdown');
+            if (companyContainer && companyDropdown && !companyContainer.contains(e.target)) {
+                companyDropdown.classList.add('hidden');
             }
         });
 

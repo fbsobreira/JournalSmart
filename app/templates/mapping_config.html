@@ -12,7 +12,7 @@
         </div>
         <div class="flex items-center gap-2">
             <button
-                onclick="openImportExportModal()"
+                id="openImportExportBtn"
                 class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors"
                 title="Import/Export mappings"
             >
@@ -22,7 +22,7 @@
                 Import/Export
             </button>
             <button
-                onclick="openCreateModal()"
+                id="addMappingBtn"
                 class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-900 transition-colors"
             >
                 <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -50,7 +50,6 @@
                 <div id="categoryFilter" class="flex flex-wrap items-center gap-2">
                     <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">Filter:</span>
                     <button
-                        onclick="filterByCategory(null)"
                         data-category=""
                         class="category-filter-btn active inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full transition-colors bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300"
                     >
@@ -68,7 +67,6 @@
                     {% endfor %}
                     {% for cat, count in categories.items() | sort %}
                     <button
-                        onclick="filterByCategory('{{ cat }}')"
                         data-category="{{ cat }}"
                         class="category-filter-btn inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full transition-colors bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-900/50 dark:hover:text-blue-300"
                     >
@@ -79,7 +77,6 @@
                     {% set uncategorized = mappings | selectattr('category', 'none') | list | length + mappings | selectattr('category', 'equalto', '') | list | length %}
                     {% if uncategorized > 0 %}
                     <button
-                        onclick="filterByCategory('__uncategorized__')"
                         data-category="__uncategorized__"
                         class="category-filter-btn inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full transition-colors bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600"
                     >
@@ -120,7 +117,7 @@
                                 </td>
                                 <td class="whitespace-nowrap py-4 pl-2 pr-3">
                                     <button
-                                        onclick="toggleMapping({{ mapping.id }})"
+                                        data-toggle-mapping="{{ mapping.id }}"
                                         class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 {% if mapping.is_active %}bg-primary-600{% else %}bg-gray-200 dark:bg-gray-600{% endif %}"
                                         role="switch"
                                         aria-checked="{{ 'true' if mapping.is_active else 'false' }}"
@@ -178,7 +175,7 @@
                                             </svg>
                                         </a>
                                         <button
-                                            onclick="openEditModal(this)"
+                                            data-edit-mapping="true"
                                             data-mapping='{{ mapping | tojson }}'
                                             class="text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                                             title="Edit mapping"
@@ -188,7 +185,8 @@
                                             </svg>
                                         </button>
                                         <button
-                                            onclick="confirmDeleteMapping({{ mapping.id }}, '{{ mapping.pattern }}')"
+                                            data-delete-mapping="{{ mapping.id }}"
+                                            data-mapping-pattern="{{ mapping.pattern | e }}"
                                             class="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                                             title="Delete mapping"
                                         >
@@ -214,7 +212,7 @@
                         Create your first mapping to automatically remap journal entries.
                     </p>
                     <button
-                        onclick="openCreateModal()"
+                        id="addFirstMappingBtn"
                         class="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition-colors"
                     >
                         <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -258,7 +256,7 @@
 
 <!-- Import/Export Modal -->
 <div id="importExportModal" class="fixed inset-0 z-50 hidden" aria-labelledby="import-export-title" role="dialog" aria-modal="true">
-    <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeImportExportModal()"></div>
+    <div id="importExportBackdrop" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity"></div>
     <div class="fixed inset-0 z-10 overflow-y-auto">
         <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
             <div class="relative transform rounded-2xl bg-white dark:bg-gray-800 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
@@ -290,7 +288,7 @@
                         <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Download all mappings as a JSON file for backup or transfer.</p>
                         <button
                             type="button"
-                            onclick="exportMappings()"
+                            id="exportMappingsBtn"
                             class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 border border-green-200 dark:border-green-700 rounded-lg transition-colors"
                         >
                             <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -321,12 +319,12 @@
                                         <p class="mb-1 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Click to upload</span> or drag and drop</p>
                                         <p class="text-xs text-gray-400 dark:text-gray-500">JSON file only</p>
                                     </div>
-                                    <input id="importFile" type="file" accept=".json,application/json" class="hidden" onchange="handleFileSelect(event)" />
+                                    <input id="importFile" type="file" accept=".json,application/json" class="hidden" />
                                 </label>
                             </div>
                             <div id="importFileInfo" class="hidden text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2 flex items-center justify-between">
                                 <span id="importFileName"></span>
-                                <button type="button" onclick="clearImportFile()" class="text-gray-400 hover:text-red-500 transition-colors">
+                                <button type="button" id="clearImportFileBtn" class="text-gray-400 hover:text-red-500 transition-colors">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
@@ -335,7 +333,6 @@
                             <button
                                 type="button"
                                 id="importBtn"
-                                onclick="importMappings()"
                                 disabled
                                 class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
@@ -362,7 +359,7 @@
                 <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 rounded-b-2xl flex justify-end">
                     <button
                         type="button"
-                        onclick="closeImportExportModal()"
+                        id="closeImportExportBtn"
                         class="px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 dark:focus:ring-offset-gray-800 transition-all"
                     >
                         Close
@@ -375,11 +372,11 @@
 
 <!-- Create/Edit Mapping Modal -->
 <div id="mappingModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeMappingModal()"></div>
+    <div id="mappingModalBackdrop" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity"></div>
     <div class="fixed inset-0 z-10 overflow-y-auto">
         <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
             <div class="relative transform rounded-2xl bg-white dark:bg-gray-800 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md">
-                <form id="mappingForm" onsubmit="saveMapping(event)" class="overflow-visible">
+                <form id="mappingForm" class="overflow-visible">
                     <input type="hidden" id="mappingId" name="id" value="">
 
                     <!-- Modal Header -->
@@ -422,7 +419,6 @@
                                 </div>
                                 <button
                                     type="button"
-                                    onclick="testPattern()"
                                     id="testPatternBtn"
                                     class="inline-flex items-center px-3.5 py-2.5 text-sm font-medium text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/50 hover:bg-primary-100 dark:hover:bg-primary-900/70 border border-primary-200 dark:border-primary-700 rounded-lg transition-all hover:shadow-sm whitespace-nowrap"
                                     title="Test pattern against recent journals"
@@ -436,7 +432,7 @@
                             <div class="mt-2 flex items-center justify-between">
                                 <p id="patternHelp" class="text-xs text-gray-500 dark:text-gray-400">Text to match in journal descriptions (case-insensitive)</p>
                                 <label class="inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" id="isRegex" name="is_regex" class="sr-only peer" onchange="toggleRegexMode()">
+                                    <input type="checkbox" id="isRegex" name="is_regex" class="sr-only peer">
                                     <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-purple-600"></div>
                                     <span class="ms-2 text-xs font-medium text-gray-600 dark:text-gray-400">Regex</span>
                                 </label>
@@ -480,7 +476,7 @@
                                     </span>
                                     <button
                                         type="button"
-                                        onclick="hideTestResults()"
+                                        id="hideTestResultsBtn"
                                         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                                     >
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -591,7 +587,7 @@
                     <div class="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 rounded-b-2xl flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
                         <button
                             type="button"
-                            onclick="closeMappingModal()"
+                            id="cancelMappingBtn"
                             class="w-full sm:w-auto px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 dark:focus:ring-offset-gray-800 transition-all"
                         >
                             Cancel
@@ -719,6 +715,99 @@ let fromAccountDropdown, toAccountDropdown;
 document.addEventListener('DOMContentLoaded', () => {
     fromAccountDropdown = initSearchableDropdown('fromAccountSearch', 'fromAccount', 'fromAccountDropdown');
     toAccountDropdown = initSearchableDropdown('toAccountSearch', 'toAccount', 'toAccountDropdown');
+
+    // ========================================
+    // Event Listeners (CSP-compliant)
+    // ========================================
+
+    // Add Mapping buttons
+    const addMappingBtn = document.getElementById('addMappingBtn');
+    if (addMappingBtn) addMappingBtn.addEventListener('click', openCreateModal);
+
+    const addFirstMappingBtn = document.getElementById('addFirstMappingBtn');
+    if (addFirstMappingBtn) addFirstMappingBtn.addEventListener('click', openCreateModal);
+
+    // Import/Export Modal
+    const openImportExportBtn = document.getElementById('openImportExportBtn');
+    if (openImportExportBtn) openImportExportBtn.addEventListener('click', openImportExportModal);
+
+    const importExportBackdrop = document.getElementById('importExportBackdrop');
+    if (importExportBackdrop) importExportBackdrop.addEventListener('click', closeImportExportModal);
+
+    const closeImportExportBtn = document.getElementById('closeImportExportBtn');
+    if (closeImportExportBtn) closeImportExportBtn.addEventListener('click', closeImportExportModal);
+
+    const exportMappingsBtn = document.getElementById('exportMappingsBtn');
+    if (exportMappingsBtn) exportMappingsBtn.addEventListener('click', exportMappings);
+
+    const importFile = document.getElementById('importFile');
+    if (importFile) importFile.addEventListener('change', handleFileSelect);
+
+    const clearImportFileBtn = document.getElementById('clearImportFileBtn');
+    if (clearImportFileBtn) clearImportFileBtn.addEventListener('click', clearImportFile);
+
+    const importBtn = document.getElementById('importBtn');
+    if (importBtn) importBtn.addEventListener('click', importMappings);
+
+    // Mapping Modal
+    const mappingModalBackdrop = document.getElementById('mappingModalBackdrop');
+    if (mappingModalBackdrop) mappingModalBackdrop.addEventListener('click', closeMappingModal);
+
+    const cancelMappingBtn = document.getElementById('cancelMappingBtn');
+    if (cancelMappingBtn) cancelMappingBtn.addEventListener('click', closeMappingModal);
+
+    const mappingForm = document.getElementById('mappingForm');
+    if (mappingForm) mappingForm.addEventListener('submit', saveMapping);
+
+    const testPatternBtn = document.getElementById('testPatternBtn');
+    if (testPatternBtn) testPatternBtn.addEventListener('click', testPattern);
+
+    const hideTestResultsBtn = document.getElementById('hideTestResultsBtn');
+    if (hideTestResultsBtn) hideTestResultsBtn.addEventListener('click', hideTestResults);
+
+    const isRegexCheckbox = document.getElementById('isRegex');
+    if (isRegexCheckbox) isRegexCheckbox.addEventListener('change', toggleRegexMode);
+
+    // Category filter buttons
+    document.querySelectorAll('.category-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const category = btn.dataset.category;
+            if (category === '') {
+                filterByCategory(null);
+            } else if (category === '__uncategorized__') {
+                filterByCategory('__uncategorized__');
+            } else {
+                filterByCategory(category);
+            }
+        });
+    });
+
+    // Mapping row actions (use event delegation on the mapping table body)
+    const mappingsTableBody = document.getElementById('mappingsTableBody');
+    if (mappingsTableBody) {
+        mappingsTableBody.addEventListener('click', (e) => {
+            const toggleBtn = e.target.closest('[data-toggle-mapping]');
+            if (toggleBtn) {
+                e.preventDefault();
+                toggleMapping(toggleBtn.dataset.toggleMapping);
+                return;
+            }
+
+            const editBtn = e.target.closest('[data-edit-mapping]');
+            if (editBtn) {
+                e.preventDefault();
+                openEditModal(editBtn);
+                return;
+            }
+
+            const deleteBtn = e.target.closest('[data-delete-mapping]');
+            if (deleteBtn) {
+                e.preventDefault();
+                confirmDeleteMapping(deleteBtn.dataset.deleteMapping, deleteBtn.dataset.mappingPattern);
+                return;
+            }
+        });
+    }
 });
 
 function openCreateModal() {
@@ -888,10 +977,12 @@ async function toggleMapping(mappingId) {
 }
 
 async function confirmDeleteMapping(mappingId, pattern) {
-    const confirmed = await window.showConfirm(
-        'Delete Mapping',
-        `Are you sure you want to delete the mapping for pattern "${pattern}"? This action cannot be undone.`
-    );
+    const confirmed = await window.showConfirm({
+        title: 'Delete Mapping',
+        message: `Are you sure you want to delete the mapping for pattern "${pattern}"? This action cannot be undone.`,
+        confirmText: 'Delete',
+        type: 'danger'
+    });
 
     if (confirmed) {
         await deleteMapping(mappingId);
@@ -1242,7 +1333,8 @@ function filterByCategory(category) {
                         (category && btnCategory === category);
 
         btn.classList.remove('active', 'bg-primary-100', 'dark:bg-primary-900/50', 'text-primary-700', 'dark:text-primary-300',
-                            'bg-blue-100', 'text-blue-700', 'dark:bg-blue-900/50', 'dark:text-blue-300');
+                            'bg-blue-100', 'text-blue-700', 'dark:bg-blue-900/50', 'dark:text-blue-300',
+                            'bg-gray-100', 'dark:bg-gray-700', 'text-gray-600', 'dark:text-gray-400');
 
         if (isActive) {
             btn.classList.add('active', 'bg-primary-100', 'dark:bg-primary-900/50', 'text-primary-700', 'dark:text-primary-300');
@@ -1300,9 +1392,10 @@ function filterByCategory(category) {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
                     </svg>
                     <p>No mappings in this category</p>
-                    <button onclick="filterByCategory(null)" class="mt-2 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">Show all mappings</button>
+                    <button id="showAllMappingsBtn" class="mt-2 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">Show all mappings</button>
                 `;
                 table.parentNode.appendChild(noMatches);
+                document.getElementById('showAllMappingsBtn').addEventListener('click', () => filterByCategory(null));
             }
         } else {
             table.classList.remove('hidden');

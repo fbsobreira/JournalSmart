@@ -13,11 +13,17 @@ logger = logging.getLogger(__name__)
 
 
 class DBAccountMapping(db.Model):
-    """Account mapping rule stored in database"""
+    """Account mapping rule stored in database - scoped per QBO company"""
 
     __tablename__ = "account_mappings"
 
     id = db.Column(db.Integer, primary_key=True)
+    realm_id = db.Column(
+        db.String(50),
+        db.ForeignKey("qbo_connections.realm_id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     pattern = db.Column(db.String(200), nullable=False)
     from_account_id = db.Column(db.String(50), nullable=False)
     from_account_name = db.Column(db.String(200))
@@ -30,6 +36,12 @@ class DBAccountMapping(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    # Relationship to QBO connection
+    connection = db.relationship(
+        "QBOConnection",
+        backref=db.backref("mappings", lazy="dynamic", cascade="all, delete-orphan"),
     )
 
     def __repr__(self):
@@ -81,6 +93,7 @@ class DBAccountMapping(db.Model):
         """Convert to dictionary for API responses"""
         return {
             "id": self.id,
+            "realm_id": self.realm_id,
             "pattern": self.pattern,
             "from_account_id": self.from_account_id,
             "from_account_name": self.from_account_name,
@@ -95,23 +108,56 @@ class DBAccountMapping(db.Model):
         }
 
     @classmethod
-    def get_categories(cls):
-        """Get all unique categories"""
-        result = (
-            cls.query.with_entities(cls.category)
-            .distinct()
-            .filter(cls.category.isnot(None), cls.category != "")
-            .all()
-        )
+    def get_categories(cls, realm_id: str = None):
+        """Get all unique categories for a specific realm"""
+        query = cls.query.with_entities(cls.category).distinct()
+        query = query.filter(cls.category.isnot(None), cls.category != "")
+        if realm_id:
+            query = query.filter(cls.realm_id == realm_id)
+        result = query.all()
         return sorted([r[0] for r in result])
 
     @classmethod
-    def get_active_mappings(cls):
-        """Get all active mappings ordered by sort_order"""
-        return cls.query.filter_by(is_active=True).order_by(cls.sort_order.asc()).all()
+    def get_active_mappings(cls, realm_id: str = None):
+        """Get all active mappings for a specific realm ordered by sort_order"""
+        query = cls.query.filter_by(is_active=True)
+        if realm_id:
+            query = query.filter(cls.realm_id == realm_id)
+        return query.order_by(cls.sort_order.asc()).all()
 
     @classmethod
-    def get_next_sort_order(cls):
-        """Get the next available sort_order value"""
-        max_order = cls.query.with_entities(db.func.max(cls.sort_order)).scalar()
+    def get_mappings_by_realm(cls, realm_id: str):
+        """Get all mappings for a specific realm"""
+        return (
+            cls.query.filter_by(realm_id=realm_id).order_by(cls.sort_order.asc()).all()
+        )
+
+    @classmethod
+    def get_next_sort_order(cls, realm_id: str = None):
+        """Get the next available sort_order value for a realm"""
+        query = cls.query.with_entities(db.func.max(cls.sort_order))
+        if realm_id:
+            query = query.filter(cls.realm_id == realm_id)
+        max_order = query.scalar()
         return (max_order or 0) + 1
+
+    @classmethod
+    def migrate_mappings_to_realm(cls, realm_id: str) -> int:
+        """
+        Migrate existing mappings without realm_id to the specified realm.
+        Returns the number of mappings migrated.
+        """
+        try:
+            orphan_mappings = cls.query.filter(cls.realm_id.is_(None)).all()
+            count = 0
+            for mapping in orphan_mappings:
+                mapping.realm_id = realm_id
+                count += 1
+            if count > 0:
+                db.session.commit()
+                logger.info(f"Migrated {count} orphan mappings to realm {realm_id}")
+            return count
+        except Exception as e:
+            logger.error(f"Error migrating mappings: {str(e)}")
+            db.session.rollback()
+            return 0

@@ -20,15 +20,22 @@ logger = logging.getLogger(__name__)
 def mapping_config():
     """Display mapping configuration page"""
     try:
+        # Get current realm_id
+        realm_id = qbo_service.get_current_realm_id()
+
         # Get accounts for dropdowns
         accounts = qbo_service.get_accounts()
-        # Get current mappings from database ordered by sort_order
-        db_mappings = DBAccountMapping.query.order_by(
-            DBAccountMapping.sort_order.asc()
-        ).all()
+
+        # Get current mappings from database ordered by sort_order (filtered by realm)
+        query = DBAccountMapping.query.order_by(DBAccountMapping.sort_order.asc())
+        if realm_id:
+            query = query.filter(DBAccountMapping.realm_id == realm_id)
+        db_mappings = query.all()
         mappings = [m.to_dict() for m in db_mappings]
 
-        logger.debug(f"Loaded {len(accounts)} accounts and {len(mappings)} mappings")
+        logger.debug(
+            f"Loaded {len(accounts)} accounts and {len(mappings)} mappings for realm {realm_id}"
+        )
 
         return render_template(
             "mapping_config.html", accounts=accounts, mappings=mappings
@@ -44,8 +51,9 @@ def mapping_config():
 @bp.route("/mapping", methods=["POST"])
 @require_qbo_auth
 def save_mapping():
-    """Save mapping configuration to database"""
+    """Save mapping configuration to database for current company"""
     try:
+        realm_id = qbo_service.get_current_realm_id()
         mapping_data = request.json
 
         if not mapping_data:
@@ -57,12 +65,15 @@ def save_mapping():
             if field not in mapping_data:
                 return jsonify({"error": f"Missing required field: {field}"}), 400
 
-        # Check for duplicate
-        existing = DBAccountMapping.query.filter_by(
+        # Check for duplicate within current realm
+        query = DBAccountMapping.query.filter_by(
             pattern=mapping_data["pattern"],
             from_account_id=mapping_data["from_account_id"],
             is_active=True,
-        ).first()
+        )
+        if realm_id:
+            query = query.filter(DBAccountMapping.realm_id == realm_id)
+        existing = query.first()
 
         if existing:
             return jsonify(
@@ -71,21 +82,22 @@ def save_mapping():
                 }
             ), 409
 
-        # Create new mapping with next sort_order
+        # Create new mapping with next sort_order for this realm
         mapping = DBAccountMapping(
+            realm_id=realm_id,
             pattern=mapping_data["pattern"],
             from_account_id=mapping_data["from_account_id"],
             from_account_name=mapping_data.get("from_account_name"),
             to_account_id=mapping_data["to_account_id"],
             to_account_name=mapping_data.get("to_account_name"),
             is_active=mapping_data.get("is_active", True),
-            sort_order=DBAccountMapping.get_next_sort_order(),
+            sort_order=DBAccountMapping.get_next_sort_order(realm_id),
         )
 
         db.session.add(mapping)
         db.session.commit()
 
-        logger.info(f"Created mapping: {mapping.pattern}")
+        logger.info(f"Created mapping for realm {realm_id}: {mapping.pattern}")
 
         return jsonify({"success": True, "mapping": mapping.to_dict()}), 201
 

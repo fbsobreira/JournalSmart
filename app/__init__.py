@@ -96,6 +96,82 @@ def run_migrations(app):
             db.session.commit()
             app.logger.info("Migration complete: category column added")
 
+        # Migration 4: Add realm_id column for multi-company support
+        try:
+            result = db.session.execute(
+                text("SELECT realm_id FROM account_mappings LIMIT 1")
+            )
+            result.close()
+        except Exception:
+            app.logger.info(
+                "Adding realm_id column to account_mappings table for multi-company support..."
+            )
+            db.session.execute(
+                text("ALTER TABLE account_mappings ADD COLUMN realm_id VARCHAR(50)")
+            )
+            db.session.commit()
+            app.logger.info("Migration complete: realm_id column added")
+
+            # Try to migrate existing mappings to current active connection
+            try:
+                from app.models.qbo_connection import QBOConnection
+                from app.models.db_account_mapping import DBAccountMapping
+
+                connection = QBOConnection.query.order_by(
+                    QBOConnection.updated_at.desc()
+                ).first()
+                if connection:
+                    migrated = DBAccountMapping.migrate_mappings_to_realm(
+                        connection.realm_id
+                    )
+                    if migrated > 0:
+                        app.logger.info(
+                            f"Migrated {migrated} existing mappings to realm {connection.realm_id}"
+                        )
+            except Exception as e:
+                app.logger.warning(
+                    f"Could not migrate existing mappings to realm: {str(e)}"
+                )
+
+        # Migration 5: Add realm_id column to update_history for multi-company support
+        try:
+            result = db.session.execute(
+                text("SELECT realm_id FROM update_history LIMIT 1")
+            )
+            result.close()
+        except Exception:
+            app.logger.info(
+                "Adding realm_id column to update_history table for multi-company support..."
+            )
+            db.session.execute(
+                text("ALTER TABLE update_history ADD COLUMN realm_id VARCHAR(50)")
+            )
+            db.session.commit()
+            app.logger.info("Migration complete: realm_id column added to update_history")
+
+            # Try to migrate existing history to current active connection
+            try:
+                from app.models.qbo_connection import QBOConnection
+
+                connection = QBOConnection.query.order_by(
+                    QBOConnection.updated_at.desc()
+                ).first()
+                if connection:
+                    result = db.session.execute(
+                        text(
+                            "UPDATE update_history SET realm_id = :realm_id WHERE realm_id IS NULL"
+                        ),
+                        {"realm_id": connection.realm_id},
+                    )
+                    db.session.commit()
+                    app.logger.info(
+                        f"Migrated {result.rowcount} existing history entries to realm {connection.realm_id}"
+                    )
+            except Exception as e:
+                app.logger.warning(
+                    f"Could not migrate existing history to realm: {str(e)}"
+                )
+
 
 def register_security_headers(app):
     """Register security headers on all responses"""

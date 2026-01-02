@@ -227,6 +227,74 @@ class TokenService:
             return None
 
     @staticmethod
+    def get_all_connections() -> list:
+        """
+        Get all QBO connections.
+
+        Returns:
+            List of QBOConnection objects
+        """
+        try:
+            return QBOConnection.query.order_by(QBOConnection.updated_at.desc()).all()
+        except Exception as e:
+            logger.error(f"Error getting all connections: {str(e)}")
+            return []
+
+    @staticmethod
+    def get_connection_by_realm(realm_id: str) -> Optional[QBOConnection]:
+        """
+        Get a specific QBO connection by realm ID.
+
+        Args:
+            realm_id: The QuickBooks realm ID
+
+        Returns:
+            QBOConnection object or None
+        """
+        try:
+            return QBOConnection.query.filter_by(realm_id=realm_id).first()
+        except Exception as e:
+            logger.error(f"Error getting connection for realm {realm_id}: {str(e)}")
+            return None
+
+    @staticmethod
+    def switch_connection(realm_id: str, auth_client) -> Optional[QBOConnection]:
+        """
+        Switch to a different QBO company connection.
+
+        Args:
+            realm_id: The QuickBooks realm ID to switch to
+            auth_client: The IntuitLib AuthClient to update
+
+        Returns:
+            QBOConnection object or None if not found
+        """
+        try:
+            connection = QBOConnection.query.filter_by(realm_id=realm_id).first()
+            if not connection:
+                logger.warning(f"No connection found for realm {realm_id}")
+                return None
+
+            # Update the auth_client with the new connection's tokens
+            auth_client.access_token = connection.access_token
+            auth_client.refresh_token = connection.refresh_token
+            auth_client.realm_id = connection.realm_id
+
+            # Update the connection's updated_at to make it the "current" one
+            from datetime import datetime, timezone
+
+            connection.updated_at = datetime.now(timezone.utc)
+            db.session.commit()
+
+            logger.info(f"Switched to company: {connection.company_name} ({realm_id})")
+            return connection
+
+        except Exception as e:
+            logger.error(f"Error switching connection to realm {realm_id}: {str(e)}")
+            db.session.rollback()
+            return None
+
+    @staticmethod
     def migrate_to_encrypted_tokens() -> int:
         """
         Migrate any existing plain text tokens to encrypted format.

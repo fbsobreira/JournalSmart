@@ -11,10 +11,18 @@ import logging
 from flask import Blueprint, jsonify, request
 from app.extensions import db
 from app.models.db_account_mapping import DBAccountMapping
+from app.services.qbo import qbo_service
 from app.utils.decorators import require_qbo_auth
 
 bp = Blueprint("api", __name__, url_prefix="/api")
 logger = logging.getLogger(__name__)
+
+
+def get_current_realm_id():
+    """Get the current realm_id from the QBO service"""
+    if qbo_service.auth_client and qbo_service.auth_client.realm_id:
+        return qbo_service.auth_client.realm_id
+    return None
 
 
 # =============================================================================
@@ -25,25 +33,31 @@ logger = logging.getLogger(__name__)
 @bp.route("/mappings", methods=["GET"])
 @require_qbo_auth
 def list_mappings():
-    """Get all account mappings ordered by sort_order"""
+    """Get all account mappings for current company ordered by sort_order"""
     try:
+        realm_id = get_current_realm_id()
         # Get optional filter parameters
         active_only = request.args.get("active", "true").lower() == "true"
 
         query = DBAccountMapping.query.order_by(DBAccountMapping.sort_order.asc())
+
+        # Filter by realm_id (current company)
+        if realm_id:
+            query = query.filter(DBAccountMapping.realm_id == realm_id)
 
         if active_only:
             query = query.filter_by(is_active=True)
 
         mappings = query.all()
 
-        logger.debug(f"Retrieved {len(mappings)} mappings")
+        logger.debug(f"Retrieved {len(mappings)} mappings for realm {realm_id}")
 
         return jsonify(
             {
                 "success": True,
                 "mappings": [m.to_dict() for m in mappings],
                 "count": len(mappings),
+                "realm_id": realm_id,
             }
         )
 
@@ -55,8 +69,9 @@ def list_mappings():
 @bp.route("/mappings", methods=["POST"])
 @require_qbo_auth
 def create_mapping():
-    """Create a new account mapping"""
+    """Create a new account mapping for current company"""
     try:
+        realm_id = get_current_realm_id()
         data = request.json
 
         if not data:
@@ -68,12 +83,15 @@ def create_mapping():
             if field not in data or not data[field]:
                 return jsonify({"error": f"Missing required field: {field}"}), 400
 
-        # Check for duplicate pattern with same from_account_id
-        existing = DBAccountMapping.query.filter_by(
+        # Check for duplicate pattern with same from_account_id within current realm
+        query = DBAccountMapping.query.filter_by(
             pattern=data["pattern"],
             from_account_id=data["from_account_id"],
             is_active=True,
-        ).first()
+        )
+        if realm_id:
+            query = query.filter(DBAccountMapping.realm_id == realm_id)
+        existing = query.first()
 
         if existing:
             return jsonify(
@@ -89,8 +107,9 @@ def create_mapping():
             if not is_valid:
                 return jsonify({"error": f"Invalid regex pattern: {error}"}), 400
 
-        # Create new mapping with next sort_order
+        # Create new mapping with next sort_order for this realm
         mapping = DBAccountMapping(
+            realm_id=realm_id,
             pattern=data["pattern"],
             from_account_id=data["from_account_id"],
             from_account_name=data.get("from_account_name"),
@@ -98,15 +117,15 @@ def create_mapping():
             to_account_name=data.get("to_account_name"),
             is_active=data.get("is_active", True),
             is_regex=is_regex,
-            category=data.get("category", "").strip() or None,
-            sort_order=DBAccountMapping.get_next_sort_order(),
+            category=(data.get("category") or "").strip() or None,
+            sort_order=DBAccountMapping.get_next_sort_order(realm_id),
         )
 
         db.session.add(mapping)
         db.session.commit()
 
         logger.info(
-            f"Created mapping: {mapping.pattern} ({mapping.from_account_id} -> {mapping.to_account_id})"
+            f"Created mapping for realm {realm_id}: {mapping.pattern} ({mapping.from_account_id} -> {mapping.to_account_id})"
         )
 
         return jsonify({"success": True, "mapping": mapping.to_dict()}), 201
@@ -122,9 +141,14 @@ def create_mapping():
 def get_mapping(mapping_id):
     """Get a specific mapping by ID"""
     try:
+        realm_id = get_current_realm_id()
         mapping = DBAccountMapping.query.get(mapping_id)
 
         if not mapping:
+            return jsonify({"error": "Mapping not found"}), 404
+
+        # Verify mapping belongs to current realm
+        if realm_id and mapping.realm_id and mapping.realm_id != realm_id:
             return jsonify({"error": "Mapping not found"}), 404
 
         return jsonify({"success": True, "mapping": mapping.to_dict()})
@@ -139,9 +163,14 @@ def get_mapping(mapping_id):
 def update_mapping(mapping_id):
     """Update an existing mapping"""
     try:
+        realm_id = get_current_realm_id()
         mapping = DBAccountMapping.query.get(mapping_id)
 
         if not mapping:
+            return jsonify({"error": "Mapping not found"}), 404
+
+        # Verify mapping belongs to current realm
+        if realm_id and mapping.realm_id and mapping.realm_id != realm_id:
             return jsonify({"error": "Mapping not found"}), 404
 
         data = request.json
@@ -192,9 +221,14 @@ def update_mapping(mapping_id):
 def delete_mapping(mapping_id):
     """Delete a mapping"""
     try:
+        realm_id = get_current_realm_id()
         mapping = DBAccountMapping.query.get(mapping_id)
 
         if not mapping:
+            return jsonify({"error": "Mapping not found"}), 404
+
+        # Verify mapping belongs to current realm
+        if realm_id and mapping.realm_id and mapping.realm_id != realm_id:
             return jsonify({"error": "Mapping not found"}), 404
 
         db.session.delete(mapping)
@@ -215,9 +249,14 @@ def delete_mapping(mapping_id):
 def toggle_mapping(mapping_id):
     """Toggle a mapping's active status"""
     try:
+        realm_id = get_current_realm_id()
         mapping = DBAccountMapping.query.get(mapping_id)
 
         if not mapping:
+            return jsonify({"error": "Mapping not found"}), 404
+
+        # Verify mapping belongs to current realm
+        if realm_id and mapping.realm_id and mapping.realm_id != realm_id:
             return jsonify({"error": "Mapping not found"}), 404
 
         mapping.is_active = not mapping.is_active
@@ -240,6 +279,7 @@ def toggle_mapping(mapping_id):
 def reorder_mappings():
     """Reorder mappings by updating their sort_order values"""
     try:
+        realm_id = get_current_realm_id()
         data = request.json
 
         if not data or "order" not in data:
@@ -250,15 +290,18 @@ def reorder_mappings():
         if not isinstance(order, list):
             return jsonify({"error": "Order must be an array of mapping IDs"}), 400
 
-        # Update sort_order for each mapping
+        # Update sort_order for each mapping (only if it belongs to current realm)
         for index, mapping_id in enumerate(order):
             mapping = DBAccountMapping.query.get(mapping_id)
             if mapping:
+                # Verify realm ownership
+                if realm_id and mapping.realm_id and mapping.realm_id != realm_id:
+                    continue
                 mapping.sort_order = index
 
         db.session.commit()
 
-        logger.info(f"Reordered {len(order)} mappings")
+        logger.info(f"Reordered {len(order)} mappings for realm {realm_id}")
 
         return jsonify({"success": True, "message": f"Reordered {len(order)} mappings"})
 
@@ -396,9 +439,10 @@ def validate_regex():
 @bp.route("/mappings/categories", methods=["GET"])
 @require_qbo_auth
 def get_categories():
-    """Get all unique mapping categories"""
+    """Get all unique mapping categories for current company"""
     try:
-        categories = DBAccountMapping.get_categories()
+        realm_id = get_current_realm_id()
+        categories = DBAccountMapping.get_categories(realm_id)
 
         return jsonify({"success": True, "categories": categories})
 
@@ -415,8 +459,9 @@ def get_categories():
 @bp.route("/mappings/import", methods=["POST"])
 @require_qbo_auth
 def import_mappings():
-    """Import mappings from JSON array"""
+    """Import mappings from JSON array for current company"""
     try:
+        realm_id = get_current_realm_id()
         data = request.json
 
         if not data or not isinstance(data, list):
@@ -447,19 +492,23 @@ def import_mappings():
                     errors.append(f"Item {idx}: Invalid regex - {error}")
                     continue
 
-            # Check for existing
-            existing = DBAccountMapping.query.filter_by(
+            # Check for existing within current realm
+            query = DBAccountMapping.query.filter_by(
                 pattern=mapping_data["pattern"],
                 from_account_id=mapping_data["from_account_id"],
-            ).first()
+            )
+            if realm_id:
+                query = query.filter(DBAccountMapping.realm_id == realm_id)
+            existing = query.first()
 
             if existing:
                 skipped += 1
                 errors.append(f"Item {idx}: Duplicate pattern/account")
                 continue
 
-            # Create new mapping
+            # Create new mapping for current realm
             mapping = DBAccountMapping(
+                realm_id=realm_id,
                 pattern=mapping_data["pattern"],
                 from_account_id=mapping_data["from_account_id"],
                 from_account_name=mapping_data.get("from_account_name"),
@@ -467,15 +516,17 @@ def import_mappings():
                 to_account_name=mapping_data.get("to_account_name"),
                 is_active=mapping_data.get("is_active", True),
                 is_regex=is_regex,
-                category=mapping_data.get("category", "").strip() or None,
-                sort_order=DBAccountMapping.get_next_sort_order(),
+                category=(mapping_data.get("category") or "").strip() or None,
+                sort_order=DBAccountMapping.get_next_sort_order(realm_id),
             )
             db.session.add(mapping)
             imported += 1
 
         db.session.commit()
 
-        logger.info(f"Imported {imported} mappings, skipped {skipped}")
+        logger.info(
+            f"Imported {imported} mappings for realm {realm_id}, skipped {skipped}"
+        )
 
         return jsonify(
             {
@@ -495,11 +546,15 @@ def import_mappings():
 @bp.route("/mappings/export", methods=["GET"])
 @require_qbo_auth
 def export_mappings():
-    """Export all mappings as JSON array"""
+    """Export all mappings for current company as JSON array"""
     try:
-        mappings = DBAccountMapping.query.order_by(
-            DBAccountMapping.sort_order.asc()
-        ).all()
+        realm_id = get_current_realm_id()
+        query = DBAccountMapping.query.order_by(DBAccountMapping.sort_order.asc())
+
+        if realm_id:
+            query = query.filter(DBAccountMapping.realm_id == realm_id)
+
+        mappings = query.all()
 
         export_data = [
             {
@@ -525,8 +580,9 @@ def export_mappings():
 @bp.route("/mappings/check-duplicate", methods=["POST"])
 @require_qbo_auth
 def check_duplicate():
-    """Check if a mapping with the same pattern and from_account already exists"""
+    """Check if a mapping with the same pattern and from_account already exists for current company"""
     try:
+        realm_id = get_current_realm_id()
         data = request.json
 
         if not data:
@@ -542,6 +598,10 @@ def check_duplicate():
         query = DBAccountMapping.query.filter_by(
             pattern=pattern, from_account_id=from_account_id, is_active=True
         )
+
+        # Filter by current realm
+        if realm_id:
+            query = query.filter(DBAccountMapping.realm_id == realm_id)
 
         if exclude_id:
             query = query.filter(DBAccountMapping.id != exclude_id)

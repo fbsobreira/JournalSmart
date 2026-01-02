@@ -14,11 +14,11 @@
             <!-- Selection Controls -->
             <div id="selectionControls" class="hidden items-center gap-2">
                 <span id="selectedCount" class="text-sm text-gray-600 dark:text-gray-400">0 selected</span>
-                <button onclick="selectAll()" class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 font-medium">
+                <button id="selectAllBtn" class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 font-medium">
                     Select All
                 </button>
                 <span class="text-gray-300 dark:text-gray-600">|</span>
-                <button onclick="deselectAll()" class="text-sm text-gray-600 hover:text-gray-700 dark:text-gray-400 font-medium">
+                <button id="deselectAllBtn" class="text-sm text-gray-600 hover:text-gray-700 dark:text-gray-400 font-medium">
                     Deselect All
                 </button>
             </div>
@@ -60,7 +60,6 @@
                                 name="account_id"
                                 id="account_id"
                                 class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2.5 pl-3 pr-10 text-gray-900 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm appearance-none cursor-pointer"
-                                onchange="saveFilterPreferences(); this.form.submit()"
                             >
                                 <option value="">Select an account...</option>
                                 {% for account in accounts %}
@@ -141,8 +140,7 @@
             <!-- Select All Checkbox -->
             <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" id="selectAllCheckbox"
-                       class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-700"
-                       onchange="toggleSelectAll(this.checked)">
+                       class="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-700">
                 <span class="text-sm text-gray-600 dark:text-gray-400">Select All</span>
             </label>
         </div>
@@ -156,7 +154,6 @@
                             <label class="flex-shrink-0 cursor-pointer">
                                 <input type="checkbox" class="journal-checkbox h-5 w-5 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-700"
                                        data-journal-id="{{ journal.id }}"
-                                       onchange="updateSelectionState()"
                                        checked>
                             </label>
                             <div class="flex-shrink-0">
@@ -171,8 +168,8 @@
                                 <p class="text-sm text-gray-500 dark:text-gray-400">{{ journal.date }}</p>
                             </div>
                         </div>
-                        <button class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                                onclick="removeChange('{{ journal.id }}')"
+                        <button class="remove-change-btn inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                data-journal-id="{{ journal.id }}"
                                 aria-label="Remove change for journal {{ journal.id }}">
                             <svg class="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -367,6 +364,54 @@
     // Initialize selection state on page load
     document.addEventListener('DOMContentLoaded', () => {
         updateSelectionState();
+
+        // Select All button
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', selectAll);
+        }
+
+        // Deselect All button
+        const deselectAllBtn = document.getElementById('deselectAllBtn');
+        if (deselectAllBtn) {
+            deselectAllBtn.addEventListener('click', deselectAll);
+        }
+
+        // Select All checkbox
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                toggleSelectAll(this.checked);
+            });
+        }
+
+        // Account select auto-submit
+        const accountSelect = document.getElementById('account_id');
+        if (accountSelect) {
+            accountSelect.addEventListener('change', function() {
+                saveFilterPreferences();
+                document.getElementById('filterForm').submit();
+            });
+        }
+
+        // Journal checkboxes - event delegation
+        const journalList = document.getElementById('journalList');
+        if (journalList) {
+            journalList.addEventListener('change', function(e) {
+                if (e.target.classList.contains('journal-checkbox')) {
+                    updateSelectionState();
+                }
+            });
+
+            // Remove change buttons - event delegation
+            journalList.addEventListener('click', function(e) {
+                const removeBtn = e.target.closest('.remove-change-btn');
+                if (removeBtn) {
+                    const journalId = removeBtn.dataset.journalId;
+                    removeChange(journalId);
+                }
+            });
+        }
     });
 
     // Global keyboard shortcut for select all (A key) - handled by base.html

@@ -196,19 +196,29 @@ class QBOService:
     # Journal Methods
     # =========================================================================
 
+    def get_current_realm_id(self) -> Optional[str]:
+        """Get the current realm ID from the auth client"""
+        if self.auth_client and self.auth_client.realm_id:
+            return self.auth_client.realm_id
+        return None
+
     def get_account_mappings(self) -> List[AccountMapping]:
         """
-        Get account mappings from database.
+        Get account mappings from database for the current company.
         Falls back to .env configuration if database has no mappings.
         """
         from app.models.db_account_mapping import DBAccountMapping
 
+        realm_id = self.get_current_realm_id()
+
         try:
-            # Try to get mappings from database first
-            db_mappings = DBAccountMapping.get_active_mappings()
+            # Try to get mappings from database first (filtered by realm_id)
+            db_mappings = DBAccountMapping.get_active_mappings(realm_id=realm_id)
 
             if db_mappings:
-                logger.debug(f"Loaded {len(db_mappings)} mappings from database")
+                logger.debug(
+                    f"Loaded {len(db_mappings)} mappings from database for realm {realm_id}"
+                )
                 return [
                     AccountMapping(
                         pattern=m.pattern,
@@ -281,7 +291,6 @@ class QBOService:
                 formatted_journal = self._format_journal(
                     journal=journal,
                     account_mappings=account_mappings,
-                    selected_account_id=safe_account_id,
                 )
                 if formatted_journal:
                     formatted_journals.append(formatted_journal)
@@ -295,9 +304,15 @@ class QBOService:
             return []
 
     def _format_journal(
-        self, journal, account_mappings: List[AccountMapping], selected_account_id: str
+        self, journal, account_mappings: List[AccountMapping]
     ) -> Optional[Dict[str, Any]]:
-        """Format journal entry for API response"""
+        """
+        Format journal entry for API response.
+
+        Shows ALL lines with proposed changes. The filter account (used in get_journals_by_account)
+        selects which journals to display, but once selected, we show all changes that will be
+        applied to give the user complete visibility.
+        """
         try:
             formatted_journal = {
                 "id": journal.Id,
@@ -307,14 +322,16 @@ class QBOService:
             }
 
             for line in journal.Line:
-                # Only process lines with the selected account
-                if line.JournalEntryLineDetail.AccountRef.value != selected_account_id:
+                # Skip lines without journal entry details
+                if not hasattr(line, "JournalEntryLineDetail"):
+                    continue
+                if not hasattr(line.JournalEntryLineDetail, "AccountRef"):
                     continue
 
                 description = line.Description or ""
                 account_ref = line.JournalEntryLineDetail.AccountRef
 
-                # Look for matching pattern
+                # Look for matching pattern for ANY line (not just selected account)
                 proposed_account = None
                 for mapping in account_mappings:
                     if mapping.from_account_id == account_ref.value and mapping.matches(
@@ -324,7 +341,7 @@ class QBOService:
                         formatted_journal["has_changes"] = True
                         break
 
-                # Only add the line if we found a matching pattern
+                # Add the line if we found a matching pattern
                 if proposed_account:
                     acc_proposed = self.get_account_by_id(proposed_account)
 
@@ -506,6 +523,9 @@ class QBOService:
                                     from_account=old_account,
                                     to_account=new_account_dict,
                                     amount=amount,
+                                    realm_id=self.auth_client.realm_id
+                                    if self.auth_client
+                                    else None,
                                 )
                             except Exception as hist_error:
                                 logger.warning(
