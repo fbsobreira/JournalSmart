@@ -147,7 +147,9 @@ def run_migrations(app):
                 text("ALTER TABLE update_history ADD COLUMN realm_id VARCHAR(50)")
             )
             db.session.commit()
-            app.logger.info("Migration complete: realm_id column added to update_history")
+            app.logger.info(
+                "Migration complete: realm_id column added to update_history"
+            )
 
             # Try to migrate existing history to current active connection
             try:
